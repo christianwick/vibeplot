@@ -6,11 +6,10 @@
 Welcome to vibeplot's documentation!
 ====================================
 
-Vibeplot presents a visualization of molecular vibrations in terms of changes
-of normal coordinates (bond length, bond angle and bond torsion) in two
-dimensions.  The data may be obtained from a vibrational analysis of density
-functional calculations (DFT).  Vibeplot is especially targeted at the
-chemists.
+Vibeplot presents a new and attractive way to visualize vibrational analysis
+from density functional calculations (DFT) in two dimensions. It is especially
+targeted at the chemists. The interface can either be scripted or used
+interactively with QVibeplot.
 
 
 Contents

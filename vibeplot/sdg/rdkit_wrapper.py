@@ -12,17 +12,16 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-from rdkit import Chem
-from rdkit.Chem import AllChem
-from vibeplot.datafile.molfile import Molfile
+from rdkit.Chem import AllChem as Chem
+from vibeplot.parser.molfile import write_molfile
 
 
 def sdg(vbmol, algo='conversion'):
-    mol = Chem.MolFromMolBlock(Molfile.mol_to_molfile(vbmol), removeHs=False)
+    mol = Chem.MolFromMolBlock(write_molfile(vbmol), removeHs=False)
     if algo == 'conversion':
-        AllChem.GenerateDepictionMatching3DStructure(mol, mol)
+        Chem.GenerateDepictionMatching3DStructure(mol, mol)
     elif algo == 'de novo':
-        AllChem.Compute2DCoords(mol)
+        Chem.Compute2DCoords(mol)
     else:
         raise NameError
     for atom in mol.GetAtoms():

@@ -10,6 +10,9 @@ upload-html:
 profile:
 	python -m cProfile -s cumulative QVibePlot.py
 
+plop:
+	python -m plop.collector QVibePlot.py
+
 lint:
 	pylint --include-ids=y --disable=C0103 QVibePlot.py
 

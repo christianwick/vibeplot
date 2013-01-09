@@ -24,12 +24,25 @@ import utils.vecalgebra as va
 from utils import Plane
 from utils.graph import make_paths
 
-from chemistry import *
-
 
 class MoleculePlotter(object):
-    """
-    do the maths and return matplotlib artists to be presented in a figure
+    """Use `matplotlib` to draw a molecule.
+    
+    Attributes
+    ----------
+    molecule : `vibeplot.chemistry.Molecule`
+    fig : `matplotlib.Figure`
+    axes : `matplotlib.Axes`
+    show_atom_index : bool
+        If True, the index of the atom is written next to its symbol.
+    black_and_white : bool
+        It True, no colors are used.
+    fontsize : int
+        The font size used to write the atomic labels.
+    linewidth : float
+        The linewidth used to draw the molecule.
+    padding : float
+
     """
 
     def __init__(self):
@@ -55,9 +68,9 @@ class MoleculePlotter(object):
         self._animated = []  # cleared
 
     def plot_molecule(self):
-        if self.molecule is None:
-            return
+        """Convenience function used to plot the molecule."""
         self.__initAxes()
+        if (self.molecule is None) or (self.linewidth == 0.0): return
         self.axes.add_collection(self.get_bond_collection(zorder=10,
                                                           lw=self.linewidth))
         for label in self.atom_label_text_iter(
@@ -73,7 +86,7 @@ class MoleculePlotter(object):
                         ymin - self.padding, ymax + self.padding))
 
     def save_molecule(self, filename):
-        # savefig does not save animated artists
+        """Convenience function used to save the drawing."""
         for artist in self._animated:
             artist.set_animated(False)
         self.fig.savefig(filename, dpi=300)
@@ -81,7 +94,18 @@ class MoleculePlotter(object):
             artist.set_animated(True)
 
     def atom_label_text_iter(self, show_index=False, **kwargs):
-        """return list usable as argument to mpl.axes.text"""
+        """Generate atomic labels.
+
+        Returns
+        -------
+        x, y : float
+            Position of the label.
+        label : string
+
+        kw : dict
+            Other arguments to pass to `self.axes.text`.
+
+        """
         box_props = dict(boxstyle='round', facecolor='white', edgecolor='none')
         for atom in self.molecule.graph:
             x = atom.x_paper
@@ -96,11 +120,11 @@ class MoleculePlotter(object):
             yield [x, y, label, kw]
 
     def get_atom_collection(self, radius=None, **kwargs):
-        """return mpl.collection of atoms"""
+        """Return `PathCollection` representing atoms as circles."""
         col = []
         colors = []
         for atom in self.molecule.graph:
-            color = Atom.colors.get(atom.color, 'k')
+            color = atom.colors.get(atom.color, 'k')
             colors.append(color)
             if radius is None:
                 radius = atom.radius
@@ -111,7 +135,7 @@ class MoleculePlotter(object):
         return PatchCollection(col, **kw)
 
     def get_bond_collection(self, **kwargs):
-        """return mpl.collection of bonds"""
+        """Return `PathCollection` representing atomic bonds as segments."""
         col = []
         codes = [Path.MOVETO,
                  Path.LINETO,  # segment
@@ -127,45 +151,72 @@ class MoleculePlotter(object):
 
 
 class VibrationPlotter(MoleculePlotter):
-
+    """Use `matplotlib` to draw the vibration markers.
+    
+    Attributes
+    ----------
+    scaling_factor : float
+        Scale the amplitude of the markers.
+    oop_curve_type : {3, 4}
+        Use either 3-points or 4-points bezier to represent bond
+        torsions.
+    bond_colors, arc_colors, oop_colors : tuple of two matplotlib colors
+    threshold : float
+        If the amplitude of the change is below the threshold, the
+        marker is not drawn.
+        
+    """
     def __init__(self):
         super(VibrationPlotter, self).__init__()
         self.scaling_factor = 10
         self.oop_curve_type = 4
+        self.bond_colors = self.arc_colors = ("b", "r")
+        self.oop_colors = ("g", "y")
+        self.threshold = 0.0
 
-    def plot_vibration(self, vibration):
+    def plot_vibration(self, freq, **kwargs):
+        """Convenience function used to plot the markers.
+
+        Parameters
+        ----------
+        freq : float
+            The frequency of the vibration to show.
+        kwargs : dict
+            Keyword arguments forwarded to matplotlib.
+
+        """
         while self._animated:
             artist = self._animated.pop()
             try:
                 artist.remove()
             except ValueError:
                 pass
+        linewidth = self.linewidth if self.linewidth != 0.0 else 1.0
         self._animated = [
             self.get_bondlength_change_collection(
-                vibration, factor=self.scaling_factor, zorder=20,
-                lw=self.linewidth),
+                freq, factor=self.scaling_factor, zorder=20,
+                lw=linewidth, **kwargs),
             self.get_angle_change_collection(
-                vibration, factor=self.scaling_factor, zorder=25,
-                lw=self.linewidth),
+                freq, factor=self.scaling_factor, zorder=25,
+                lw=linewidth, **kwargs),
             self.get_oop_angle_change_collection(
-                vibration, factor=self.scaling_factor, zorder=50,
-                lw=self.linewidth,
-                CURVE_TYPE=self.oop_curve_type)]
+                freq, factor=self.scaling_factor, zorder=50,
+                lw=linewidth,
+                CURVE_TYPE=self.oop_curve_type, **kwargs)]
         for collection in self._animated:
-            collection.set_animated(True)
             self.axes.add_collection(collection)
             self.axes.draw_artist(collection)
 
-    def get_bondlength_change_collection(self, vib, factor=10.0, **kwargs):
-        """return mpl.collection of bondlength change markers (lines)"""
+    def get_bondlength_change_collection(self, freq, factor=10.0, **kwargs):
+        """Return PathCollection of bondlength change markers (lines)"""
 
-        def bond_length_change(vib, path):
+        def bond_length_change(freq, path):
             atom1, atom2 = path
             # distance at equilibrium
             equil  = va.distance(atom1.coords, atom2.coords)
             # distance after displacement
-            length = va.distance(atom1.normal_coords[vib.frequency],
-                                atom2.normal_coords[vib.frequency])
+            length = va.distance(atom1.normal_coords[freq],
+                                atom2.normal_coords[freq])
             # normalized difference
             return (length - equil) / equil
 
@@ -177,10 +228,10 @@ class VibrationPlotter(MoleculePlotter):
         colors = []
         for path in make_paths(self.molecule.graph, order=2):
             atom1, atom2 = path
-            amplitude = bond_length_change(vib, path)
-            if abs(amplitude) < Vibration.threshold: continue
-            amp.append(abs(amplitude) * factor)
-            colors.append(Vibration.bond_colors[0 if amplitude < 0.0 else 1])
+            amplitude = bond_length_change(freq, path)
+            if abs(amplitude) <= self.threshold: continue
+            amp.append(abs(amplitude) * 5.0 * factor)
+            colors.append(self.bond_colors[0 if amplitude < 0.0 else 1])
             verts = atom1.projected_coordinates, atom2.projected_coordinates
             segment = Path(verts, codes)
             col.append(segment)
@@ -189,20 +240,20 @@ class VibrationPlotter(MoleculePlotter):
         kw.update(kwargs)
         return PathCollection(col, **kw)
 
-    def get_angle_change_collection(self, vib, factor=10.0, **kwargs):
-        """return mpl.collection of angle change markers (arcs)"""
+    def get_angle_change_collection(self, freq, factor=10.0, **kwargs):
+        """Return `PathCollection` of angle change markers (arcs)"""
 
-        def angle_change(vib, path):
+        def angle_change(freq, path):
             atom1, vertex, atom2 = path
             # angle at equilibrium
             vector1 = atom1.coords - vertex.coords
             vector2 = atom2.coords - vertex.coords
             equil = va.dangle(vector1, vector2)
             # angle after displacement
-            vector1 = (atom1.normal_coords[vib.frequency] -
-                    vertex.normal_coords[vib.frequency])
-            vector2 = (atom2.normal_coords[vib.frequency] -
-                    vertex.normal_coords[vib.frequency])
+            vector1 = (atom1.normal_coords[freq] -
+                    vertex.normal_coords[freq])
+            vector2 = (atom2.normal_coords[freq] -
+                    vertex.normal_coords[freq])
             angle = va.dangle(vector1, vector2)
             # difference
             return angle - equil
@@ -212,8 +263,8 @@ class VibrationPlotter(MoleculePlotter):
         for path in make_paths(self.molecule.graph, order=3):
             atom1, vertex, atom2 = path
             xy = vertex.projected_coordinates
-            amplitude = angle_change(vib, path)
-            if abs(amplitude) < Vibration.angle_threshold: continue
+            amplitude = angle_change(freq, path)
+            if abs(amplitude) <= self.threshold: continue
             width = height = abs(amplitude) / 180.0 * factor
             angle = 0.0
             d1 = atom1.projected_coordinates - vertex.projected_coordinates
@@ -223,7 +274,7 @@ class VibrationPlotter(MoleculePlotter):
             # always plot smaller arc [ 0.0, 180.0 [
             if (theta2 - theta1 + 360.0) % 360.0 > 180.0:
                 theta2, theta1 = theta1, theta2
-            color = Vibration.arc_colors[0 if amplitude < 0.0 else 1]
+            color = self.arc_colors[0 if amplitude < 0.0 else 1]
             colors.append(color)
             arc = Arc(xy, width, height, angle, theta1, theta2)
             col.append(arc)
@@ -231,13 +282,11 @@ class VibrationPlotter(MoleculePlotter):
         kw.update(kwargs)
         return PatchCollection(col, **kw)
 
-    def get_oop_angle_change_collection(self, vib, factor=10.0,
+    def get_oop_angle_change_collection(self, freq, factor=10.0,
                                         CURVE_TYPE=4, **kwargs):
-        """return mpl.collection of bond torsion markers (beziers)
+        """Return `PathCollection` of bond torsion markers (beziers)."""
 
-        possible values to CURVE_TYPE are 3 and 4"""
-
-        def oop_angle_change(vib, path):
+        def oop_angle_change(freq, path):
             atom_ext1, atom_mid1, atom_mid2, atom_ext2 = path
             # dihedral angle at equilibrium
             plane1 = Plane(
@@ -251,13 +300,13 @@ class VibrationPlotter(MoleculePlotter):
             equil = plane1.dihedral_angle(plane2)
             # dihedral angle after displacement
             plane1 = Plane(
-                atom_mid1.normal_coords[vib.frequency],
-                atom_mid2.normal_coords[vib.frequency],
-                atom_ext1.normal_coords[vib.frequency])
+                atom_mid1.normal_coords[freq],
+                atom_mid2.normal_coords[freq],
+                atom_ext1.normal_coords[freq])
             plane2 = Plane(
-                atom_mid1.normal_coords[vib.frequency],
-                atom_mid2.normal_coords[vib.frequency],
-                atom_ext2.normal_coords[vib.frequency])
+                atom_mid1.normal_coords[freq],
+                atom_mid2.normal_coords[freq],
+                atom_ext2.normal_coords[freq])
             oop = plane1.dihedral_angle(plane2)
             # difference
             return oop - equil
@@ -278,17 +327,17 @@ class VibrationPlotter(MoleculePlotter):
                     ]
         for path in make_paths(self.molecule.graph, order=4):
             atom_pos = [atom.projected_coordinates for atom in path]
-            amplitude = oop_angle_change(vib, path)
+            amplitude = oop_angle_change(freq, path)
             # amplitude in degree
             damplitude = va.rad2deg(amplitude)
             if damplitude > 180.0:
                 damplitude -= 360.0
-            if abs(damplitude) < Vibration.angle_threshold: continue
+            if abs(damplitude) <= self.threshold: continue
             intensity = abs(amplitude) / np.pi * 0.25 * factor
             p2 = 0.5 * (atom_pos[2] + atom_pos[1])  # middle
             p1 = intensity * (atom_pos[0] - p2) + p2
             p3 = intensity * (atom_pos[3] - p2) + p2
-            color = Vibration.oop_colors[0 if amplitude < 0.0 else 1]
+            color = self.oop_colors[0 if amplitude < 0.0 else 1]
             if CURVE_TYPE is CURVE_TYPE_3:
                 verts = [p1, p2, p3]
             elif CURVE_TYPE is CURVE_TYPE_4:
@@ -302,6 +351,16 @@ class VibrationPlotter(MoleculePlotter):
 
 
 class SpectrumPlotter(object):
+    """Use `matplotlib` to draw a spectrum as dirac vectors.
+
+    Attributes
+    ----------
+    spectrum : dict
+        Mapping intensities to frequencies.
+    fig : `matplotlib.Figure`
+    axes : `matplotlib.Axes`
+
+    """
 
     def __init__(self):
         self.spectrum = None
@@ -320,24 +379,24 @@ class SpectrumPlotter(object):
         self.fig.tight_layout()
 
     def plot_spectrum(self):
-        """Plot spectrum on self.axes."""
+        """Convenience function to plot the spectrum."""
         self.__initAxes()
         self.axes.add_collection(self.get_spectrum_collection())
 
     def mark_line(self, marked):
+        """Place marker at the frequency `marked`."""
         marker = self.axes.lines[0]
         marker.set_xdata(marked)
         self.axes.draw_artist(marker)
 
     def get_spectrum_collection(self, **kwargs):
-        """return mpl.collection of lines representing the calculated
-        spectrum"""
+        """Return `PathCollection` representing the spectrum."""
         codes = [Path.MOVETO,
                  Path.LINETO,
                 ]
         col = []
-        for vib in self.spectrum.itervalues():
-            verts = [(vib.frequency, 0.0), (vib.frequency, vib.intensity)]
+        for frequency, intensity in self.spectrum.iteritems():
+            verts = [(frequency, 0.0), (frequency, intensity)]
             col.append(Path(verts, codes))
         kw = {}
         kw.update(kwargs)

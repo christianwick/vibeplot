@@ -27,13 +27,13 @@ data_files = (matplotlib.get_py2exe_datafiles()
 
 setup(
     name="QVibePlot",
-    version="0.13",
+    version="0.13.1",
     author="Mathias Laurin",
     author_email="Mathias.Laurin+vibeplot@gmail.com",
     url="http://vibeplot.sf.net",
     license="Python Software Foundation License",
     packages=['vibeplot', 'vibeplot.utils', 'vibeplot.sdg',
-              'vibeplot.datafile', 'oasa', 'oasa.graph', ],
+              'vibeplot.parser', 'oasa', 'oasa.graph', ],
 
     #package_dir={'vibeplot': 'src'},
     #package_data=package_data,

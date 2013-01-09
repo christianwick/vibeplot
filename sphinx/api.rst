@@ -5,13 +5,12 @@ vibeplot.plotter module
 -----------------------
 
 .. automodule:: vibeplot.plotter
-   :members:
 
 vibeplot.chemistry module
 -------------------------
 
 .. automodule:: vibeplot.chemistry
-   :members:
+   :undoc-members:
 
 vibeplot.sdg module
 -------------------
@@ -23,5 +22,4 @@ Structure diagram generation (SDG) is performed using OASA_ or RDKit_.
 .. _RDKit: http://rdkit.org/
 
 .. automodule:: vibeplot.sdg
-   :members:
 

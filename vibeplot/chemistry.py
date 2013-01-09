@@ -142,58 +142,23 @@ class Atom(object):
         self.projected_coordinates[Atom.Y] = val
 
 
-
 class Molecule(object):
 
-    THRESHOLD = 1e-3  # neglect value if below
-
-    def __init__(self, graph, vibrations):
-        self.vibrations = vibrations
+    def __init__(self, graph):
         self.graph = graph  # hold molecule as an undirected graph
         self.projection = None
 
     def __repr__(self):
-        return "%s()" % self.__class__.__name__
+        return "%s(graph=%r)" % (self.__class__.__name__, self.graph)
 
-    def dump_graph(self):
-        return [(k.index, [a.index for a in v])
-                for k, v in self.graph.iteritems()]
+    def __str__(self):
+        return str([(k.index, [a.index for a in v])
+                    for k, v in self.graph.iteritems()])
 
     @property
     def atoms(self):
         return sorted(self.graph, key=lambda a: a.index)
 
     def count_bonds(self):
-        count = 0
-        for children in self.graph.itervalues():
-            count += len(children)
-        return count / 2
-
-
-
-class Vibration(object):
-
-    __slots__ = ['frequency', 'intensity']
-
-    bond_colors = arc_colors = ('b', 'r')
-    oop_colors = ('g', 'y')
-    threshold = 0.01     # 0.01 == 1%
-    angle_threshold = 1.0  # degree
-
-    def __init__(self, freq=0.0, intensity=1.0):
-        self.frequency = freq
-        self.intensity = intensity
-
-    def __repr__(self):
-        return "%s(freq=%r, intensity=%r)" % (self.__class__.__name__,
-                                              self.frequency, self.intensity)
-
-    @property
-    def key(self):
-        return self.mk_key(self.frequency)
-
-    @classmethod
-    def mk_key(self, val):
-        # helper for sorting freq as directory keys without rounding problem
-        return int(round(val * 100.0))
+        return sum([len(children) for children in self.graph.itervalues()]) / 2
 
