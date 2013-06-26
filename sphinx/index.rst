@@ -73,7 +73,7 @@ dependencies to the 0.14 series
 
 * matplotlib_
 * numpy_
-* `Open Babel`_ 2.3.0 or 2.3.2
+* `Open Babel`_ 2.2.x, some formats supported in 2.3.x
 * pybel_
 * PyQt4_
 
