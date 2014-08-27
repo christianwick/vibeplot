@@ -31,6 +31,10 @@ if platform.system() == "Windows":
     data_files.append(  # may be empty if openbabel was compiled from source
         (".",
          glob.glob(os.sep.join((datadir, "..", "*.obf")))))
+    data_files.append(
+        (".",  # supporting dlls for openbabel
+         [os.sep.join((datadir, "..", dll_name + ".dll"))
+          for dll_name in "iconv libinchi libxml2 xdr-0".split()]))
 else:
     data_files = []
 
