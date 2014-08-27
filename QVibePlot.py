@@ -508,15 +508,20 @@ class MainWindow(QtGui.QMainWindow):
         else:
             return
 
+        if inFormat is None:
+            inFormat = str(os.path.splitext(filename)[1][1:])
+
         # load data
         mol = ob.OBMol()
         obconv = ob.OBConversion()
-        obconv.SetInFormat(str(os.path.splitext(filename)[1][1:]
-                           if inFormat is None else inFormat))
+        obconv.SetInFormat(inFormat)
         obconv.ReadFile(mol, str(filename))
         if not mol.NumAtoms():
             self.statusBar().showMessage(
-                "Extension or file format unknown, see http://openbabel.org.")
+                "".join((
+                    "Extension or file format '%s' unknown, ",
+                    "see http://openbabel.org for the list of ",
+                    "supported files.")) % inFormat)
         vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
