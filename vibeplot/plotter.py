@@ -12,8 +12,11 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-"""The plotter module contains classes that do the necessary maths and
-handle plotting of the results.
+"""
+vibeplot.plotter module
+=======================
+
+This module contains the classes used to generate the plots.
 
 """
 
@@ -23,10 +26,7 @@ from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.path import Path
 from matplotlib.lines import Line2D
 
-try:
-    import openbabel as ob
-except ImportError:
-    ob = None
+import openbabel as ob
 import numpy as np
 
 import vibeplot.utils.vecalgebra as va
@@ -39,14 +39,12 @@ def _coords(atom):
 
 
 class MoleculePlotter(object):
-    """Use `matplotlib` to draw a molecule.
+    """Use :mod:`matplotlib` to draw a molecule.
 
     Attributes
     ----------
-    _molecule : openbabel.OBMol
-        Access via the `molecule` property.
-    fig : matplotlib.Figure
-    axes : matplotlib.Axes
+    fig : :class:`~matplotlib.figure.Figure`
+    axes : :class:`~matplotlib.axes.Axes`
     show_atom_index : bool
         If True, the index of the atom is written next to its symbol.
     black_and_white : bool
@@ -96,13 +94,7 @@ class MoleculePlotter(object):
     def molecule(self, molecule):
         """`openbabel.OBMol` molecule with original 3D coordinates."""
         self._molecule = molecule
-        self._molecule2D = ob.OBMol()
-        # deep copy atoms
-        for atom in ob.OBMolAtomIter(self._molecule):
-            self._molecule2D.NewAtom(atom.GetIdx()).Duplicate(atom)
-        # shallow copy bonds
-        for bond in ob.OBMolBondIter(self._molecule):
-            self._molecule2D.AddBond(bond)
+        self._molecule2D = ob.OBMol(molecule)
         gen2D = ob.OBOp.FindType("gen2D")
         if not gen2D:
             raise NameError("name 'gen2D' is not defined")
@@ -130,7 +122,9 @@ class MoleculePlotter(object):
                         ymin - self.padding, ymax + self.padding))
 
     def save_molecule(self, filename):
-        """Convenience function used to save the drawing."""
+        """
+        Convenience function used to save the drawing of the molecule.
+        """
         for artist in self._animated:
             artist.set_animated(False)
         self.fig.savefig(filename, dpi=300)
@@ -165,7 +159,11 @@ class MoleculePlotter(object):
             yield [x, y, label, kw]
 
     def get_atom_collection(self, **kwargs):
-        """Return `PathCollection` representing atoms as circles."""
+        """
+        Return :class:`~matplotlib.collections.PathCollection`
+        representing atoms as circles.
+
+        """
         col = []
         colors = []
         etab = ob.OBElementTable()
@@ -179,7 +177,11 @@ class MoleculePlotter(object):
         return PatchCollection(col, **kw)
 
     def get_bond_collection(self, **kwargs):
-        """Return `PathCollection` representing atomic bonds as segments."""
+        """
+        Return :class:`~matplotlib.collections.PathCollection`
+        representing atomic bonds as segments.
+
+        """
         col = []
         codes = [Path.MOVETO, Path.LINETO,]  # segment
         for obbond in ob.OBMolBondIter(self.molecule):
@@ -194,8 +196,8 @@ class MoleculePlotter(object):
 
 
 class VibrationPlotter(MoleculePlotter):
-    """Use `matplotlib` to draw the vibration markers.
-    
+    """Use :mod:`matplotlib` to draw the vibration markers.
+
     Attributes
     ----------
     normal_coordinates : [[`openbabel.vector3`]]
@@ -208,12 +210,12 @@ class VibrationPlotter(MoleculePlotter):
         Two matplotlib colors.
     threshold : float
         Do not show marker if amplitude below `threshold`.
-        
+
     """
     def __init__(self):
         super(VibrationPlotter, self).__init__()
         self.normal_coordinates = [[None]]
-        self.scaling_factor = 10
+        self.scaling_factor = 100
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
@@ -268,9 +270,11 @@ class VibrationPlotter(MoleculePlotter):
         return atomnc
 
     def get_bondlength_change_collection(self, index, factor=10.0, **kwargs):
-        """Return `PathCollection` of bondlength change markers (lines).
         """
+        Return :class:`~matplotlib.collections.PathCollection` of
+        bondlength change markers (lines).
 
+        """
         codes = [Path.MOVETO, Path.LINETO]
         col = []
         amp = []
@@ -296,8 +300,11 @@ class VibrationPlotter(MoleculePlotter):
         return PathCollection(col, **kw)
 
     def get_angle_change_collection(self, index, factor=10.0, **kwargs):
-        """Return `PathCollection` of angle change markers (arcs)."""
+        """
+        Return :class:`~matplotlib.collections.PathCollection` of angle
+        change markers (arcs).
 
+        """
         col = []
         colors = []
         for angle in ob.OBMolAngleIter(self.molecule):
@@ -329,8 +336,11 @@ class VibrationPlotter(MoleculePlotter):
 
     def get_oop_angle_change_collection(self, index, factor=10.0,
                                         CURVE_TYPE=4, **kwargs):
-        """Return `PathCollection` of bond torsion markers (beziers)."""
+        """
+        Return :class:`~matplotlib.collections.PathCollection` of bond
+        torsion markers (beziers).
 
+        """
         CURVE_TYPE_3, CURVE_TYPE_4 = 3, 4
         col = []
         edgecolors = []
@@ -369,19 +379,18 @@ class VibrationPlotter(MoleculePlotter):
 
 
 class SpectrumPlotter(object):
-    """Use `matplotlib` to draw a spectrum as dirac vectors.
+    """Use :mod:`matplotlib` to draw a spectrum as dirac vectors.
 
     Attributes
     ----------
     vibrations : `openbabel.OBVibrationData`
         Mapping intensities to frequencies.
-    fig : `matplotlib.Figure`
-    axes : `matplotlib.Axes`
+    fig : :class:`~matplotlib.figure.Figure`
+    axes : :class:`~matplotlib.axes.Axes`
     broadening : {None, "lorentzian", "gaussian"}
         Choose function to broaden the spectrum.
 
     """
-
     def __init__(self):
         self.vibrations = ob.OBVibrationData()
         self.fig = mpl.figure.Figure()
@@ -413,7 +422,11 @@ class SpectrumPlotter(object):
         self.axes.draw_artist(marker)
 
     def get_broaden(self, **kwargs):
-        """Return `Line2D` of the broadened spectrum."""
+        """
+        Return :class:`~matplotlib.lines.Line2D` of the broadened
+        spectrum.
+
+        """
         if self.broadening is None or self.broadening == "none":
             return Line2D([0.0], [0.0])
         xmin, xmax = self.axes.get_xlim()
@@ -431,7 +444,11 @@ class SpectrumPlotter(object):
         np.savetxt(filename, self.get_broaden().get_xydata())
 
     def get_spectrum_collection(self, **kwargs):
-        """Return `PathCollection` representing the spectrum."""
+        """
+        Return :class:`~matplotlib.collections.PathCollection`
+        representing the spectrum.
+ 
+        """
         codes = [Path.MOVETO,
                  Path.LINETO,
                 ]
