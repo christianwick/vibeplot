@@ -42,7 +42,7 @@ data_files.append(
 
 setup(
     name="QVibePlot",
-    version="0.14.1",
+    version="0.14.2",
     author="Mathias Laurin",
     author_email="Mathias.Laurin+vibeplot@gmail.com",
     url="http://vibeplot.sf.net",
