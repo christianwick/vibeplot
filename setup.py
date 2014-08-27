@@ -35,7 +35,7 @@ else:
 
 setup(
     name="QVibePlot",
-    version="0.14.0",
+    version="0.14.1",
     author="Mathias Laurin",
     author_email="Mathias.Laurin+vibeplot@gmail.com",
     url="http://vibeplot.sf.net",
