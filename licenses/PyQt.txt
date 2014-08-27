@@ -1,0 +1,2 @@
+License(s) for PyQt may be found:
+http://www.riverbankcomputing.co.uk/software/pyqt/license

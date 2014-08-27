@@ -1,0 +1,2 @@
+The license for python is available at
+http://www.python.org/download/releases/2.6.7/license/
