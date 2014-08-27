@@ -23,11 +23,14 @@ for qtype in "QString QTextStream QVariant".split():
 
 import sys
 import os.path
+from glob import glob
 from functools import partial
+
 # Import Qt modules
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui, QtCore, QtSvg
 Qt = QtCore.Qt
 # Import Matplotlib
+import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import openbabel as ob
 
@@ -321,40 +324,99 @@ class MainWindow(QtGui.QMainWindow):
         self.frequency_list.currentRowChanged.connect(partial(
             self.molecule_window.drawVibration))
 
+        self.svgWidget = QtSvg.QSvgWidget()
+        palette = QtGui.QPalette(self.svgWidget.palette())
+        palette.setColor(palette.Window, QtGui.QColor("white"))
+        self.svgWidget.setPalette(palette)
+
         mainLayout.addWidget(self.frequency_list, 1, 0)
         mainLayout.setColumnStretch(1, 1)
 
     def __initMenuBar(self):
         menuBar = self.menuBar()
+
+        # File menu
         self._fileMenu = QtGui.QMenu("File")
-        for text, shortcut, callback in (
-                ("Open", QtGui.QKeySequence.Open,
-                 self._loadFile),
-                ("Save image", QtGui.QKeySequence.Save,
-                 self._saveImage),
-                ("Save image as...", "",
-                 partial(self._saveImage, dict(saveas=True))),
-                ("Quit", QtGui.QKeySequence.Quit, self.close)):
-            action = QtGui.QAction(self._fileMenu)
-            action.setText(text)
-            action.setShortcut(shortcut)
-            action.triggered.connect(callback)
-            self._fileMenu.addAction(action)
         menuBar.addMenu(self._fileMenu)
 
+        self._openAction = QtGui.QAction("Open", self._fileMenu)
+        self._openAction.setShortcut(QtGui.QKeySequence.Open)
+        self._openAction.triggered.connect(self._loadFile)
+        self._fileMenu.addAction(self._openAction)
+
+        # File > OrbiMol menu
+        self._orbiMolDbMenu = QtGui.QMenu("OrbiMol DB molecules")
+        self._fileMenu.addMenu(self._orbiMolDbMenu)
+
+        for filename in glob("data/orbimol/*.freq"):
+            action = QtGui.QAction(
+                os.path.splitext(os.path.basename(filename))[0],
+                self._orbiMolDbMenu)
+            action.triggered.connect(partial(
+                self._loadFile, filename, "g03"))
+            self._orbiMolDbMenu.addAction(action)
+
+        self._orbiMolDbMenu.addSeparator()
+        self._aboutOrbiMol = QtGui.QAction(
+            "About OrbiMol...", self._orbiMolDbMenu)
+        self._aboutOrbiMol.triggered.connect(partial(
+            QtGui.QMessageBox.about,
+            self, "About OrbiMol", " ".join((
+                """
+                <p>OrbiMol is a free molecular orbital database by Patrick
+                Chaquin and Franck Fuster. Laboratoire de Chimie
+                Th&eacute;orique, UPMC Univ Paris 06, UMR CNRS 7616, Paris.</p>
+
+                <p>For more information, see
+                <a href="http://www.lct.jussieu.fr/pagesperso/orbimol/">OrbiMol
+                </a> or Chaquin, P.; Fuster, F. Enseigner la chimie organique
+                avec les orbitales Pr&eacute;sentation d'une base de
+                donn&eacute;es d'orbitales mol&eacute;culaires. <i>L'Act.
+                Chim.</i> <b>2012</b>, <i>369</i>, 37-44.
+
+                """).splitlines())))
+        self._orbiMolDbMenu.addAction(self._aboutOrbiMol)
+
+        # File menu
+        self._saveImageAction = QtGui.QAction("Save image", self._fileMenu)
+        self._saveImageAction.setShortcut(QtGui.QKeySequence.Save)
+        self._saveImageAction.triggered.connect(self._saveImage)
+        self._fileMenu.addAction(self._saveImageAction)
+
+        self._saveImageAsAction = QtGui.QAction(
+            "Save image as...", self._fileMenu)
+        self._saveImageAsAction.setShortcut(QtGui.QKeySequence.SaveAs)
+        self._saveImageAsAction.triggered.connect(partial(
+            self._saveImage, dict(saveas=True)))
+        self._fileMenu.addAction(self._saveImageAsAction)
+
+        self._quitAction = QtGui.QAction("Quit", self._fileMenu)
+        self._quitAction.setShortcut(QtGui.QKeySequence.Quit)
+        self._quitAction.triggered.connect(self.close)
+        self._fileMenu.addAction(self._quitAction)
+
+        # View menu
         self._viewMenu = QtGui.QMenu("View")
-        for text, callback in (("Atom index",
-                                partial(self.molecule_window.showAtomIndex)),):
-            action = QtGui.QAction(self._viewMenu)
-            action.setText(text)
-            action.triggered.connect(callback)
-            action.setCheckable(True)
-            self._viewMenu.addAction(action)
         menuBar.addMenu(self._viewMenu)
 
+        self._atomIndexAction = QtGui.QAction("Atom index", self._viewMenu)
+        self._atomIndexAction.setCheckable(True)
+        self._atomIndexAction.triggered.connect(partial(
+            self.molecule_window.showAtomIndex))
+        self._viewMenu.addAction(self._atomIndexAction)
+
+        self._showSkeletonAction = QtGui.QAction(
+            "Show skeleton", self._viewMenu)
+        self._showSkeletonAction.triggered.connect(partial(
+            self.svgWidget.show), False)
+        self._viewMenu.addAction(self._showSkeletonAction)
+
+        # Help menu
         self._helpMenu = QtGui.QMenu("help")
-        for text, callback in (
-                ("About", partial(
+        menuBar.addMenu(self._helpMenu)
+
+        self._aboutAction = QtGui.QAction("About", self._helpMenu)
+        self._aboutAction.triggered.connect(partial(
                     QtGui.QMessageBox.about,
                     self, "About QVibePlot", " ".join(("""
                     QVibePlot visualizes vibrational analysis performed by
@@ -362,20 +424,60 @@ class MainWindow(QtGui.QMainWindow):
                     changes of internal coordinates.
                     <p>QVibePlot is written in Python and depends on matplotlib
                     for the graphics and numpy for the maths. The GUI is
-                    written using PyQt4.
+                    written using PyQt4.</p>
                     <p>Copyright (c) 2011-2013
                     <a href="mailto:Mathias.Laurin+vibeplot@gmail.com"> Mathias
-                    Laurin</a>
-                    <p>QVibePlot 0.14 is available under the Python Software
-                    Foundation License.
+                    Laurin</a></p>
+                    <p>QVibePlot 0.14 is available under the modified BSD
+                    License.</p>
+                    <p>Support the program by citing: Laurin, M.  QVibeplot: A
+                    Program To Visualize Molecular Vibrations in Two
+                    Dimensions. <i>J. Chem. Educ.</i> <b>2013</b>
+                    <a href="http://dx.doi.org/10.1021/ed300554z">DOI:
+                    10.1021/ed300554z</a>.</p>
 
-                    """).splitlines()))),
-                ("About Qt", partial(QtGui.QMessageBox.aboutQt, self))):
-            action = QtGui.QAction(self._helpMenu)
-            action.setText(text)
-            action.triggered.connect(callback)
-            self._helpMenu.addAction(action)
-        menuBar.addMenu(self._helpMenu)
+                    """).splitlines())))
+        self._helpMenu.addAction(self._aboutAction)
+
+        self._aboutQtAction = QtGui.QAction("About Qt", self._helpMenu)
+        self._aboutQtAction.triggered.connect(partial(
+            QtGui.QMessageBox.aboutQt, self))
+        self._helpMenu.addAction(self._aboutQtAction)
+
+        self._aboutOpenBabelAction = QtGui.QAction("About Open Babel", self._helpMenu)
+        self._aboutOpenBabelAction.triggered.connect(partial(
+                    QtGui.QMessageBox.about,
+                    self, "About Open Babel", " ".join(("""
+                    <P>This program uses Open Babel.</P>
+                    <P>Open Babel is a chemical toolbox designed to speak the
+                    many languages of chemical data. It's an open,
+                    collaborative project allowing anyone to search, convert,
+                    analyze, or store data from molecular modeling, chemistry,
+                    solid-state materials, biochemistry, or related areas.</P>
+                    <P>Open Babel is released under the GNU GPL.</P>
+                    <P>See <a href="http://openbabel.org">openbabel.org</a> for
+                    more information.</P>
+
+                    """).splitlines())))
+        self._helpMenu.addAction(self._aboutOpenBabelAction)
+
+        self._aboutMplAction = QtGui.QAction("About Matplotlib", self._helpMenu)
+        self._aboutMplAction.triggered.connect(partial(
+                    QtGui.QMessageBox.about,
+                    self, "About Matplotlib", " ".join(("""
+                    <P>This program uses Matplotlib {0}.</P>
+                    <P>Matplotlib is a python 2D plotting library which
+                    produces publication quality figures in a variety of
+                    hardcopy formats and interactive environments across
+                    platforms.</P>
+                    <P>Matplotlib is released under the
+                    <a href="http://matplotlib.org/users/license.html">
+                    Matplotlib License</a>.</P>
+                    <P>See <a href="http://matplotlib.org">matplotlib.org</a>
+                    for more information.</P>
+
+                    """.format(mpl.__version__)).splitlines())))
+        self._helpMenu.addAction(self._aboutMplAction)
 
     def __initStatusBar(self):
         self.statusBar()
@@ -385,54 +487,69 @@ class MainWindow(QtGui.QMainWindow):
             'QVibeplot' if not text else
             '%s - QVibeplot' % os.path.basename(text))
  
-    def _loadFile(self, checked=None):
-        if checked is None: return
-        dataFile = QtCore.QFileInfo(self._settings.value("dataFile"))
-        filename = QtGui.QFileDialog.getOpenFileName(
-            self,
-            u"Open file",
-            dataFile.path() if dataFile.isFile() else dataFile.filePath(),
-            ";;".join((
-                "molden (*.molden *.mold *.molf)",
-                "Gaussian (*.gal *.g92 *.g94 *.g98 *.g03 *.g09)",
-                "ACES output (*.acesout)",
-                "GAMESS-UK (*.gukout)",
-                "NWChem output (*.nwo)",
-                "VASP (*.contcar *.popscar *.vasp)",
-                "all files (*)")))
+    def _loadFile(self, filename=None, inFormat=None):
+        if not filename:
+            dataFile = self._settings.value("dataFile")
+            filename = QtGui.QFileDialog.getOpenFileName(
+                self,
+                u"Open file",
+                os.path.dirname(dataFile)
+                if os.path.isfile(dataFile) else dataFile,
+                ";;".join((
+                    "molden (*.molden *.mold *.molf)",
+                    "Gaussian (*.gal *.g92 *.g94 *.g98 *.g03 *.g09)",
+                    "ACES output (*.acesout)",
+                    "GAMESS-UK (*.gukout)",
+                    "NWChem output (*.nwo)",
+                    "VASP (*.contcar *.popscar *.vasp)",
+                    "all files (*)")))
         if filename:
-            dataFile.setFile(filename)
-            self._settings.setValue("dataFile", dataFile.filePath())
+            self._settings.setValue("dataFile", os.path.dirname(filename))
         else:
             return
-        obconv = ob.OBConversion()
-        obconv.SetInFormat(str(dataFile.suffix()))
-        obconv.SetOutFormat("smi")
+
+        # load data
         mol = ob.OBMol()
+        obconv = ob.OBConversion()
+        obconv.SetInFormat(str(os.path.splitext(filename)[1][1:]
+                           if inFormat is None else inFormat))
         obconv.ReadFile(mol, str(filename))
         if not mol.NumAtoms():
             self.statusBar().showMessage(
                 "Extension or file format unknown, see http://openbabel.org.")
-        self.setWindowTitle(obconv.WriteString(mol))
         vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
         self.spectrum_window.setVibrations(vibData)
         self.molecule_window.setMolecule(mol)
         self.molecule_window.setNormalCoords(vibData.GetLx())
+
         # reset
         self.frequency_list.clear()
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
         if imageFile.isFile():
             self._settings.setValue("imageFile", imageFile.path())
+
         # show data
         self.spectrum_window.drawSpectrum()
         self.molecule_window.drawMolecule()
+
         # populate frequency_list
         for freq in vibData.GetFrequencies():
             item = QtGui.QListWidgetItem()
             item.setData(Qt.DisplayRole, freq)
             self.frequency_list.addItem(item)
+
+        # window title
+        obconv.SetOutFormat("smi")
+        self.setWindowTitle(obconv.WriteString(mol))
+
+        # SVG representation
+        obconv.SetOutFormat("svg")
+        obconv.AddOption("C", obconv.OUTOPTIONS)  # implicit carbons
+        obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
+        obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
+        self.svgWidget.load(QtCore.QByteArray(obconv.WriteString(mol)))
 
     def _saveImage(self, saveas=False):
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
