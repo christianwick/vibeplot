@@ -24,14 +24,21 @@ OPTIONS = dict(
     #compressed=2,
     bundle_files=3,)
 
+
 if platform.system() == "Windows":
     data_files = matplotlib.get_py2exe_datafiles()
-    data_files.append(
+    datadir = os.environ["BABEL_DATADIR"]
+    data_files.append(  # may be empty if openbabel was compiled from source
         (".",
-         glob.glob(os.path.join(os.environ["BABEL_DATADIR"], "../*.obf"))))
-        # may also need {libstdinchi,libxml2,iconv}.dll
+         glob.glob(os.sep.join((datadir, "..", "*.obf")))))
 else:
-    data_files = None
+    data_files = []
+
+data_files.append(
+    (os.sep.join("data orbimol".split()),
+     glob.glob(os.sep.join("data orbimol *.freq".split()))))
+data_files.append(
+    ("licenses", glob.glob(os.sep.join("licenses *.txt".split()))))
 
 setup(
     name="QVibePlot",
@@ -65,4 +72,5 @@ setup(
         Topic :: Scientific/Engineering :: Physics
         Topic :: Scientific/Engineering :: Visualization
         """.splitlines() if s)
+
 )
