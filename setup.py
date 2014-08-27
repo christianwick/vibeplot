@@ -4,6 +4,8 @@ Usage:
     python setup.py py2exe
 """
 
+import os
+import glob
 from distutils.core import setup
 import platform
 import matplotlib
@@ -11,19 +13,25 @@ import matplotlib
 if platform.system() == "Windows":
     import py2exe
 
-OPTIONS = dict(includes=['matplotlib', 'numpy', 'sip'],
-               excludes=['scipy',
-                         'pybel', 'openbabel',
-                         'Tkconstants', 'Tkinter', 'tcl',
-                         'numpy.random' ],
-               dll_excludes=['MSVCP90.dll'],
-               skip_archive=False,
-               compressed=2,
-               bundle_files=1,)
+OPTIONS = dict(
+    includes="matplotlib numpy sip openbabel".split(),
+    excludes="""numpy.random scipy wx
+                _imagingtk PIL._imageingtk
+                ImageTk PIL.ImageTk FixTk
+                Tkconstants Tkinker tcl""".split(),
+    dll_excludes="MSVCP80.dll MSVCR80.dll MSVCP90.dll".split(),
+    skip_archive=False,
+    #compressed=2,
+    bundle_files=3,)
 
-data_files = (matplotlib.get_py2exe_datafiles() 
-              if platform.system() == "Windows" else None)
-#package_data = {'': ['vibeplot/UI/*']}
+if platform.system() == "Windows":
+    data_files = matplotlib.get_py2exe_datafiles()
+    data_files.append(
+        (".",
+         glob.glob(os.path.join(os.environ["BABEL_DATADIR"], "../*.obf"))))
+        # may also need {libstdinchi,libxml2,iconv}.dll
+else:
+    data_files = None
 
 setup(
     name="QVibePlot",
@@ -32,31 +40,29 @@ setup(
     author_email="Mathias.Laurin+vibeplot@gmail.com",
     url="http://vibeplot.sf.net",
     license="Python Software Foundation License",
-    packages=['vibeplot', 'vibeplot.utils', 'vibeplot.sdg',
-              'vibeplot.parser', 'oasa', 'oasa.graph', ],
-
+    packages="vibeplot vibeplot.utils".split(),
     #package_dir={'vibeplot': 'src'},
     #package_data=package_data,
     data_files=data_files,
-    requires=["matplotlib (>=1.1)", "numpy", "sip", "PyQt4"],
-    provides=["oasa (0.13.1)"],
+    requires="maplotlib (>=1.1);numpy;sip;PyQt4;openbabel".split(";"),
     scripts=["QVibePlot.py"],
     windows=[dict(script="QVibePlot.py")],
-    zipfile = None,
+    zipfile=None,
     options=dict(py2exe=OPTIONS),
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Python Software Foundation License',
-        'Intended Audience :: Education',
-        'Intended Audience :: Science/Research',
-        'Environment :: X11 Applications :: Qt',
-        'Operating System :: POSIX :: Linux',
-        'Operating System :: Microsoft :: Windows :: Windows NT/2000',
-        'Operating System :: POSIX :: BSD',
-        'Programming Language :: Python :: 2',
-        'Topic :: Education',
-        'Topic :: Scientific/Engineering :: Chemistry',
-        'Topic :: Scientific/Engineering :: Physics',
-        'Topic :: Scientific/Engineering :: Visualization',
-    ],
+    classifiers=os.linesep.join(
+        s for s in """
+        Development Status :: 4 - Beta
+        License :: OSI Approved :: Python Software Foundation License
+        Intended Audience :: Education
+        Intended Audience :: Science/Research
+        Environment :: X11 Applications :: Qt
+        Operating System :: POSIX :: Linux
+        Operating System :: Microsoft :: Windows :: Windows NT/2000
+        Operating System :: POSIX :: BSD
+        Programming Language :: Python :: 2
+        Topic :: Education
+        Topic :: Scientific/Engineering :: Chemistry
+        Topic :: Scientific/Engineering :: Physics
+        Topic :: Scientific/Engineering :: Visualization
+        """.splitlines() if s)
 )

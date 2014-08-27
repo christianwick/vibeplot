@@ -29,10 +29,9 @@ from PyQt4 import QtGui, QtCore
 Qt = QtCore.Qt
 # Import Matplotlib
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+import openbabel as ob
 
 import vibeplot.plotter as plotter
-from vibeplot.parser.molden import load_molden
-import vibeplot.sdg as sdg
 
 
 class SpectrumMpl(FigureCanvas):
@@ -41,9 +40,11 @@ class SpectrumMpl(FigureCanvas):
     def __init__(self, parent=None):
         self._SpectrumPlotter = plotter.SpectrumPlotter()
         self.axes = self._SpectrumPlotter.axes
+        self._oldSize = None
         self._background = None
         FigureCanvas.__init__(self, self._SpectrumPlotter.fig)
         self.setParent(parent)
+        self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
     def setParent(self, parent):
         self._parent = parent
@@ -62,8 +63,8 @@ class SpectrumMpl(FigureCanvas):
         self._background = self.copy_from_bbox(self.axes.bbox)
         self._oldSize = self.axes.bbox.width, self.axes.bbox.height
 
-    def setSpectrum(self, spectrum):
-        self._SpectrumPlotter.spectrum = spectrum
+    def setVibrations(self, vibrations):
+        self._SpectrumPlotter.vibrations = vibrations
 
     def setMarker(self, frequency):
         if not frequency: return
@@ -72,6 +73,17 @@ class SpectrumMpl(FigureCanvas):
         self.restore_region(self._background)
         self._SpectrumPlotter.mark_line(frequency)
         self.blit(self.axes.bbox)
+
+    def setBroadeningFunction(self, function_name):
+        self._SpectrumPlotter.broadening = function_name
+        self.drawSpectrum()
+
+    def setFwhm(self, fwhm):
+        self._SpectrumPlotter.width = fwhm
+        self.drawSpectrum()
+
+    def saveSpectrum(self, filename):
+        self._SpectrumPlotter.save_spectrum(filename)
 
     def _handleResize(self):
         if self._oldSize != (self.axes.bbox.width, self.axes.bbox.height):
@@ -86,7 +98,8 @@ class MoleculeMpl(FigureCanvas):
         self.axes = self._moleculePlotter.axes
         FigureCanvas.__init__(self, self._moleculePlotter.fig)
         self.setParent(parent)
-        self._frequency = None
+        self._row = -1
+        self._oldSize = None
         self._background = None
         self.oop_curve_type = 4
 
@@ -107,7 +120,7 @@ class MoleculeMpl(FigureCanvas):
 
     def redraw(self):
         self.drawMolecule()
-        self.drawVibration(self._frequency)
+        self.drawVibration(self._row)
 
     def drawMolecule(self):
         self._moleculePlotter.plot_molecule()
@@ -115,29 +128,20 @@ class MoleculeMpl(FigureCanvas):
         self._background = self.copy_from_bbox(self.axes.bbox)
         self._oldSize = self.axes.bbox.width, self.axes.bbox.height
 
-    def performSdg(self, algo, tolerance=1.1):
-        sdg.sdg(self._moleculePlotter.molecule, algo, tolerance)
-        try:
-            self.redraw()
-        except ValueError:
-            if tolerance < 2.0:
-                tolerance += 0.1
-                self.performSdg(algo, tolerance)
-            else:
-                raise
-
-    def drawVibration(self, frequency):
-        if not frequency: return
-        self._frequency = float(frequency)
+    def drawVibration(self, row):
+        if row == -1: return
+        self._row = row
         self._handleResize()
         self.restore_region(self._background)
-        self._moleculePlotter.plot_vibration(self._frequency, animated=True)
+        self._moleculePlotter.plot_vibration(row, animated=True)
         self.blit(self.axes.bbox)
 
     def setMolecule(self, molecule):
         self._moleculePlotter.molecule = molecule
-        self.performSdg(algo=sdg.oasa.denovo)
-        self._frequency = None
+        self._row = -1
+
+    def setNormalCoords(self, normCoords):
+        self._moleculePlotter.normal_coordinates = normCoords
 
     def setScalingFactor(self, scalingFactor):
         self._moleculePlotter.scaling_factor = float(scalingFactor)
@@ -193,6 +197,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.__initUI()
         self.__initMenuBar()
+        self.__initStatusBar()
 
         self._settings = QtCore.QSettings("Mathias Laurin", "QVibePlot")
         if not self._settings.contains("imageFile") or \
@@ -224,6 +229,10 @@ class MainWindow(QtGui.QMainWindow):
         self._vibrationControlBox = QtGui.QGroupBox("Vibration display")
         vibrationControlLayout = QtGui.QFormLayout(self._vibrationControlBox)
         self._vibrationControlBox.setLayout(vibrationControlLayout)
+
+        self._spectrumControlBox = QtGui.QGroupBox("Spectrum display")
+        spectrumControlLayout = QtGui.QFormLayout(self._spectrumControlBox)
+        self._spectrumControlBox.setLayout(spectrumControlLayout)
 
         fontSizeCombo = QtGui.QComboBox(self._moleculeControlBox)
         fontSizeCombo.addItems("6 8 10 12 14 18 20 24 32".split())
@@ -270,6 +279,22 @@ class MainWindow(QtGui.QMainWindow):
         thresholdComboBox.currentIndexChanged[str].connect(
             partial(self.molecule_window.setThreshold))
 
+        broadeningComboBox = QtGui.QComboBox(self._spectrumControlBox)
+        broadeningComboBox.addItems("none lorentzian gaussian".split())
+        broadeningComboBox.setCurrentIndex(0)
+        broadeningComboBox.currentIndexChanged[str].connect(
+            self.spectrum_window.setBroadeningFunction)
+
+        fwhmDoubleSpinBox = QtGui.QDoubleSpinBox(self._spectrumControlBox)
+        fwhmDoubleSpinBox.setValue(8.0)
+        fwhmDoubleSpinBox.valueChanged.connect(
+            self.spectrum_window.setFwhm)
+
+        saveSpectrumAction = QtGui.QAction("save spectrum",
+                                           self.spectrum_window)
+        saveSpectrumAction.triggered.connect(self._saveSpectrum)
+        self.spectrum_window.addAction(saveSpectrumAction)
+
         for label, editor in (("font size", fontSizeCombo),
                               ("linewidth", lineWidthCombo),
                               ("black labels", colorLabelCheckBox),
@@ -280,22 +305,27 @@ class MainWindow(QtGui.QMainWindow):
                               ("threshold", thresholdComboBox),):
             vibrationControlLayout.addRow(QtGui.QLabel(label), editor)
 
+        for label, editor in (("broadening", broadeningComboBox),
+                              ("FWHM", fwhmDoubleSpinBox)):
+            spectrumControlLayout.addRow(QtGui.QLabel(label), editor)
+
         controlBoxLayout.addWidget(self._moleculeControlBox)
         controlBoxLayout.addWidget(self._vibrationControlBox)
+        controlBoxLayout.addWidget(self._spectrumControlBox)
         controlBoxLayout.addStretch()
 
         self.frequency_list = QtGui.QListWidget(self)
         self.frequency_list.setSortingEnabled(True)
         self.frequency_list.currentTextChanged.connect(partial(
             self.spectrum_window.setMarker))
-        self.frequency_list.currentTextChanged.connect(partial(
+        self.frequency_list.currentRowChanged.connect(partial(
             self.molecule_window.drawVibration))
 
         mainLayout.addWidget(self.frequency_list, 1, 0)
         mainLayout.setColumnStretch(1, 1)
 
     def __initMenuBar(self):
-        menuBar = QtGui.QMenuBar(self)
+        menuBar = self.menuBar()
         self._fileMenu = QtGui.QMenu("File")
         for text, shortcut, callback in (
                 ("Open", QtGui.QKeySequence.Open,
@@ -322,22 +352,6 @@ class MainWindow(QtGui.QMainWindow):
             self._viewMenu.addAction(action)
         menuBar.addMenu(self._viewMenu)
 
-        self._sdgMenu = QtGui.QMenu("SDG")
-        sdgMenuActionGroup = QtGui.QActionGroup(self._sdgMenu)
-        for text, algo in (
-                ("RDKit - 2D->3D conversion", sdg.rdkit.conversion),
-                ("RDKit - de novo", sdg.rdkit.denovo),
-                ("oasa - de novo", sdg.oasa.denovo)):
-            callback = partial(self.molecule_window.performSdg, algo, 1.1)
-            action = QtGui.QAction(self._sdgMenu)
-            action.setText(text)
-            action.triggered.connect(callback)
-            action.setCheckable(True)
-            self._sdgMenu.addAction(action)
-            sdgMenuActionGroup.addAction(action)
-        sdgMenuActionGroup.actions()[-1].setChecked(True)
-        menuBar.addMenu(self._sdgMenu)
-
         self._helpMenu = QtGui.QMenu("help")
         for text, callback in (
                 ("About", partial(
@@ -349,10 +363,10 @@ class MainWindow(QtGui.QMainWindow):
                     <p>QVibePlot is written in Python and depends on matplotlib
                     for the graphics and numpy for the maths. The GUI is
                     written using PyQt4.
-                    <p>Copyright (c) 2011, 2012
+                    <p>Copyright (c) 2011-2013
                     <a href="mailto:Mathias.Laurin+vibeplot@gmail.com"> Mathias
-                    Laurin</a>, FA Universitaet Erlangen Nuernberg.
-                    <p>QVibePlot 0.13 is available under the Python Software
+                    Laurin</a>
+                    <p>QVibePlot 0.14 is available under the Python Software
                     Foundation License.
 
                     """).splitlines()))),
@@ -362,12 +376,14 @@ class MainWindow(QtGui.QMainWindow):
             action.triggered.connect(callback)
             self._helpMenu.addAction(action)
         menuBar.addMenu(self._helpMenu)
-        self.setMenuBar(menuBar)
 
-    def setWindowTitle(self, filename=""):
+    def __initStatusBar(self):
+        self.statusBar()
+
+    def setWindowTitle(self, text=""):
         super(MainWindow, self).setWindowTitle(
-            'QVibeplot' if not filename else
-            '%s - QVibeplot' % os.path.basename(filename))
+            'QVibeplot' if not text else
+            '%s - QVibeplot' % os.path.basename(text))
  
     def _loadFile(self, checked=None):
         if checked is None: return
@@ -377,16 +393,33 @@ class MainWindow(QtGui.QMainWindow):
             u"Open file",
             dataFile.path() if dataFile.isFile() else dataFile.filePath(),
             ";;".join((
-                "molden files (*.molden *.mold *.molf *input *.moinput)",
+                "molden (*.molden *.mold *.molf)",
+                "Gaussian (*.gal *.g92 *.g94 *.g98 *.g03 *.g09)",
+                "ACES output (*.acesout)",
+                "GAMESS-UK (*.gukout)",
+                "NWChem output (*.nwo)",
+                "VASP (*.contcar *.popscar *.vasp)",
                 "all files (*)")))
-        if not filename: return
-        molecule, spectrum = {".molden": load_molden}.get(
-            dataFile.suffix(), load_molden)(filename)
-        self.setWindowTitle(filename)
-        dataFile.setFile(filename)
-        self._settings.setValue("dataFile", dataFile.filePath())
-        self.spectrum_window.setSpectrum(spectrum)
-        self.molecule_window.setMolecule(molecule)
+        if filename:
+            dataFile.setFile(filename)
+            self._settings.setValue("dataFile", dataFile.filePath())
+        else:
+            return
+        obconv = ob.OBConversion()
+        obconv.SetInFormat(str(dataFile.suffix()))
+        obconv.SetOutFormat("smi")
+        mol = ob.OBMol()
+        obconv.ReadFile(mol, str(filename))
+        if not mol.NumAtoms():
+            self.statusBar().showMessage(
+                "Extension or file format unknown, see http://openbabel.org.")
+        self.setWindowTitle(obconv.WriteString(mol))
+        vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
+                   if mol.HasData(ob.VibrationData) else
+                   ob.OBVibrationData())
+        self.spectrum_window.setVibrations(vibData)
+        self.molecule_window.setMolecule(mol)
+        self.molecule_window.setNormalCoords(vibData.GetLx())
         # reset
         self.frequency_list.clear()
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
@@ -394,10 +427,11 @@ class MainWindow(QtGui.QMainWindow):
             self._settings.setValue("imageFile", imageFile.path())
         # show data
         self.spectrum_window.drawSpectrum()
+        self.molecule_window.drawMolecule()
         # populate frequency_list
-        for frequency in spectrum:
+        for freq in vibData.GetFrequencies():
             item = QtGui.QListWidgetItem()
-            item.setData(Qt.DisplayRole, frequency)
+            item.setData(Qt.DisplayRole, freq)
             self.frequency_list.addItem(item)
 
     def _saveImage(self, saveas=False):
@@ -417,8 +451,21 @@ class MainWindow(QtGui.QMainWindow):
                 filename += ".pdf"
             imageFile = QtCore.QFileInfo(filename)
             self._settings.setValue("imageFile", imageFile.filePath())
-        if imageFile.isFile():
-            self.molecule_window.saveImage(imageFile.filePath())
+        self.molecule_window.saveImage(imageFile.filePath())
+
+    def _saveSpectrum(self):
+        imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
+        filename = QtGui.QFileDialog.getSaveFileName(
+            self,
+            u"Save spectrum values",
+            imageFile.path() \
+                    if imageFile.isFile() else imageFile.filePath(),
+            "plain text (*.txt)")
+        if not filename: return
+        if "." not in filename:
+            filename += ".txt"
+        self.spectrum_window.saveSpectrum(filename)
+
 
 def main():
     app = QtGui.QApplication(sys.argv)

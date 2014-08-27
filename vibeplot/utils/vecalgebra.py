@@ -34,6 +34,10 @@ def rad2deg(a):
     return ((a * 180.0 / math.pi) + 360.0) % 360.0
 
 
+def deg2rad(a):
+    return ((a * math.pi / 180.0))
+
+
 def angle2d(vector1, vector2):
     vector1 = normalize(vector1)
     vector2 = normalize(vector2)
