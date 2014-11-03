@@ -286,7 +286,7 @@ class VibrationPlotter(MoleculePlotter):
                                 for atom in atom1, atom2]
             amplitude = ((atom1.GetDistance(atom2) -
                           atom1nc.GetDistance(atom2nc)) /
-                         atom1.GetDistance(atom2))
+                         obbond.GetLength())
             if abs(amplitude) <= self.threshold: continue
             amp.append(abs(amplitude) * 5.0 * factor)
             colors.append(self.bond_colors[0 if amplitude < 0.0 else 1])
