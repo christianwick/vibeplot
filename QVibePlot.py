@@ -13,9 +13,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-"""
-Qt4 graphical user interface (GUI) to vibeplot.
-"""
+"""Qt4 graphical user interface (GUI) to vibeplot."""
 
 import sip
 for qtype in "QString QTextStream QVariant".split():
