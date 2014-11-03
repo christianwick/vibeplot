@@ -20,6 +20,9 @@ This module contains the classes used to generate the plots.
 
 """
 
+import logging
+logging.basicConfig()
+
 import matplotlib as mpl
 from matplotlib.patches import Circle, Arc
 from matplotlib.collections import PatchCollection, PathCollection
@@ -31,6 +34,9 @@ import numpy as np
 
 import vibeplot.utils.vecalgebra as va
 import vibeplot.utils.broaden as broaden
+
+
+logger = logging.getLogger("vibeplot")
 
 
 def _coords(atom):
@@ -284,6 +290,11 @@ class VibrationPlotter(MoleculePlotter):
                             self.molecule.GetAtom(obbond.GetEndAtomIdx()))
             atom1nc, atom2nc = [self._to_normal_coordinates(atom, index)
                                 for atom in atom1, atom2]
+            if obbond.GetLength() == 0.0:
+                logger.error(
+                    "Bond between %i and %i with length %.1f ignored."
+                    % (atom1.GetIdx(), atom2.GetIdx(), obbond.GetLength()))
+                continue
             amplitude = ((atom1.GetDistance(atom2) -
                           atom1nc.GetDistance(atom2nc)) /
                          obbond.GetLength())
