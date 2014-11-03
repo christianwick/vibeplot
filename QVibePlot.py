@@ -499,7 +499,7 @@ class MainWindow(QtGui.QMainWindow):
                     "ACES output (*.acesout)",
                     "GAMESS-UK (*.gukout)",
                     "NWChem output (*.nwo)",
-                    "VASP (*.contcar *.popscar *.vasp)",
+                    "VASP (CONTCAR POSCAR *.vasp)",
                     "all files (*)")))
         if filename:
             self._settings.setValue("dataFile", os.path.dirname(filename))
@@ -508,6 +508,9 @@ class MainWindow(QtGui.QMainWindow):
 
         if inFormat is None:
             inFormat = str(os.path.splitext(filename)[1][1:])
+        if not inFormat and os.path.basename(filename).lower() in (
+                "poscar", "contcar"):
+            inFormat = "vasp"
 
         # load data
         mol = ob.OBMol()
