@@ -494,6 +494,11 @@ class MainWindow(QtGui.QMainWindow):
                 os.path.dirname(dataFile)
                 if os.path.isfile(dataFile) else dataFile,
                 ";;".join((
+                    " ".join(("Common formats (",
+                              "*.moldem *.mold *.molf",
+                              "*.gal *.g92 *.g94 *.g98 *.g03 *.g09",
+                              "*.acesout *.gukout *.nwo",
+                              "CONTCAR POSCAR *.vasp", ")")),
                     "molden (*.molden *.mold *.molf)",
                     "Gaussian (*.gal *.g92 *.g94 *.g98 *.g03 *.g09)",
                     "ACES output (*.acesout)",
