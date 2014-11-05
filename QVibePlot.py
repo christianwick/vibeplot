@@ -30,6 +30,7 @@ Qt = QtCore.Qt
 # Import Matplotlib
 import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
 import openbabel as ob
 
 import vibeplot.plotter as plotter
@@ -219,6 +220,8 @@ class MainWindow(QtGui.QMainWindow):
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
         rightLayout.addWidget(self.molecule_window)
+        self.toolbar = NavigationToolbar(self.molecule_window, self)
+        rightLayout.addWidget(self.toolbar)
 
         self.spectrum_window = SpectrumMpl(self)
         self.spectrum_window.setMinimumHeight(200)
