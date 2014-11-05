@@ -208,20 +208,21 @@ class MainWindow(QtGui.QMainWindow):
 
     def __initUI(self):
         self.setCentralWidget(QtGui.QWidget(self))
-        mainLayout = QtGui.QGridLayout(self.centralWidget())
+        mainLayout = QtGui.QHBoxLayout(self.centralWidget())
         self.centralWidget().setLayout(mainLayout)
+        leftLayout = QtGui.QVBoxLayout()
+        rightLayout = QtGui.QVBoxLayout()
+        mainLayout.addLayout(leftLayout)
+        mainLayout.addLayout(rightLayout)
 
         self.molecule_window = MoleculeMpl(self)
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
-        mainLayout.addWidget(self.molecule_window, 0, 1)
+        rightLayout.addWidget(self.molecule_window)
 
         self.spectrum_window = SpectrumMpl(self)
         self.spectrum_window.setMinimumHeight(200)
-        mainLayout.addWidget(self.spectrum_window, 1, 1)
-
-        controlBoxLayout = QtGui.QVBoxLayout()
-        mainLayout.addLayout(controlBoxLayout, 0, 0)
+        rightLayout.addWidget(self.spectrum_window)
 
         self._moleculeControlBox = QtGui.QGroupBox("Molecule display")
         moleculeControlLayout = QtGui.QFormLayout(self._moleculeControlBox)
@@ -310,10 +311,9 @@ class MainWindow(QtGui.QMainWindow):
                               ("FWHM", fwhmDoubleSpinBox)):
             spectrumControlLayout.addRow(QtGui.QLabel(label), editor)
 
-        controlBoxLayout.addWidget(self._moleculeControlBox)
-        controlBoxLayout.addWidget(self._vibrationControlBox)
-        controlBoxLayout.addWidget(self._spectrumControlBox)
-        controlBoxLayout.addStretch()
+        leftLayout.addWidget(self._moleculeControlBox)
+        leftLayout.addWidget(self._vibrationControlBox)
+        leftLayout.addWidget(self._spectrumControlBox)
 
         self.frequency_list = QtGui.QListWidget(self)
         self.frequency_list.setSortingEnabled(True)
@@ -327,8 +327,7 @@ class MainWindow(QtGui.QMainWindow):
         palette.setColor(palette.Window, QtGui.QColor("white"))
         self.svgWidget.setPalette(palette)
 
-        mainLayout.addWidget(self.frequency_list, 1, 0)
-        mainLayout.setColumnStretch(1, 1)
+        leftLayout.addWidget(self.frequency_list)
 
     def __initMenuBar(self):
         menuBar = self.menuBar()
