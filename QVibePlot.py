@@ -89,10 +89,6 @@ class MoleculeCanvas(MplCanvas):
         self.figure.plot_vibration(row, animated=True)
         self.blit(self.figure.ax.bbox)
 
-    def setMolecule(self, molecule):
-        self.figure.molecule = molecule
-        self._row = -1
-
 
 class MainWindow(QtGui.QMainWindow):
 
@@ -427,7 +423,7 @@ class MainWindow(QtGui.QMainWindow):
                    ob.OBVibrationData())
         self.spectrum_figure.vibrations = vibData
         self.spectrum_figure.plot_spectrum()
-        self.molecule_window.setMolecule(mol)
+        self.molecule_figure.molecule = mol
         self.molecule_figure.normal_coordinates = vibData.GetLx()
 
         # reset
@@ -438,6 +434,7 @@ class MainWindow(QtGui.QMainWindow):
 
         # show data
         self.spectrum_window.draw()
+        self.molecule_window.drawVibration(-1)
         self.molecule_window.draw()
 
         # populate frequency_list
