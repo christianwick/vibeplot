@@ -76,14 +76,12 @@ class MoleculeFigure(Figure):
         self.fontsize = 12
         self.linewidth = 1.0
         self.padding = 0.3
-        self._animated = []
 
     def __initAxes(self):
         self.ax.clear()
         self.ax.set_xticks(())
         self.ax.set_yticks(())
         self.ax.hold(False)
-        self._animated = []  # cleared
 
     def _2Dcoords(self, atom):
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
@@ -130,10 +128,13 @@ class MoleculeFigure(Figure):
         """
         Convenience function used to save the drawing of the molecule.
         """
-        for artist in self._animated:
-            artist.set_animated(False)
+        animated = []
+        for artist in self.ax.collections:
+            if artist.get_animated():
+                animated.append(artist)
+                artist.set_animated(False)
         self.savefig(filename, dpi=300)
-        for artist in self._animated:
+        for artist in animated:
             artist.set_animated(True)
 
     def atom_label_text_iter(self, show_index=False, **kwargs):
@@ -237,25 +238,24 @@ class VibrationFigure(MoleculeFigure):
             Keyword arguments forwarded to `matplotlib`.
 
         """
-        while self._animated:
-            artist = self._animated.pop()
-            try:
-                artist.remove()
-            except ValueError:
-                pass
+        for artist in self.ax.collections:
+            if artist.get_animated():
+                try:
+                    artist.remove()
+                except ValueError:
+                    pass
         linewidth = self.linewidth if self.linewidth != 0.0 else 1.0
-        self._animated = [
-            self.get_bondlength_change_collection(
-                index, factor=self.scaling_factor, zorder=20,
-                lw=linewidth, **kwargs),
-            self.get_angle_change_collection(
-                index, factor=self.scaling_factor, zorder=25,
-                lw=linewidth, **kwargs),
-            self.get_oop_angle_change_collection(
-                index, factor=self.scaling_factor, zorder=50,
-                lw=linewidth,
-                CURVE_TYPE=self.oop_curve_type, **kwargs)]
-        for collection in self._animated:
+        for collection in [
+                self.get_bondlength_change_collection(
+                    index, factor=self.scaling_factor, zorder=20,
+                    lw=linewidth, **kwargs),
+                self.get_angle_change_collection(
+                    index, factor=self.scaling_factor, zorder=25,
+                    lw=linewidth, **kwargs),
+                self.get_oop_angle_change_collection(
+                    index, factor=self.scaling_factor, zorder=50,
+                    lw=linewidth,
+                    CURVE_TYPE=self.oop_curve_type, **kwargs)]:
             self.ax.add_collection(collection)
             self.ax.draw_artist(collection)
 
