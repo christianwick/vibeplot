@@ -68,21 +68,6 @@ class MplCanvas(FigureCanvas):
             self.draw()
 
 
-class SpectrumCanvas(MplCanvas):
-    """Widget holding the spectrum."""
-
-    def __init__(self, figure, parent=None):
-        super(SpectrumCanvas, self).__init__(figure, parent)
-
-    def setMarker(self, frequency):
-        if not frequency: return
-        frequency = float(frequency)
-        self._handleResize()
-        self.restore_background()
-        self.figure.mark_line(frequency)
-        self.blit(self.figure.ax.bbox)
-
-
 class MoleculeCanvas(MplCanvas):
     """Widget holding the molecule."""
 
@@ -142,7 +127,7 @@ class MainWindow(QtGui.QMainWindow):
         rightLayout.addWidget(self.toolbar)
 
         self.spectrum_figure = plotter.SpectrumFigure()
-        self.spectrum_window = SpectrumCanvas(self.spectrum_figure, self)
+        self.spectrum_window = MplCanvas(self.spectrum_figure, self)
         self.spectrum_window.setMinimumHeight(200)
         rightLayout.addWidget(self.spectrum_window)
 
@@ -234,8 +219,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self.frequency_list = QtGui.QListWidget(self)
         self.frequency_list.setSortingEnabled(True)
-        self.frequency_list.currentTextChanged.connect(partial(
-            self.spectrum_window.setMarker))
+        self.frequency_list.currentTextChanged.connect(self.setMarker)
         self.frequency_list.currentRowChanged.connect(partial(
             self.molecule_window.drawVibration))
 
@@ -517,6 +501,15 @@ class MainWindow(QtGui.QMainWindow):
 
     def setFwhm(self, fwhm):
         self.spectrum_figure.width = fwhm
+        self.spectrum_window.draw()
+
+    def setMarker(self, frequency):
+        try:
+            frequency = float(frequency)
+        except ValueError:
+            # frequency == u""
+            return
+        self.spectrum_figure.mark_line(frequency)
         self.spectrum_window.draw()
 
     def setScalingFactor(self, scalingFactor):
