@@ -68,27 +68,6 @@ class MplCanvas(FigureCanvas):
             self.draw()
 
 
-class MoleculeCanvas(MplCanvas):
-    """Widget holding the molecule."""
-
-    def __init__(self, figure, parent=None):
-        super(MoleculeCanvas, self).__init__(figure, parent)
-        self._row = -1
-        self.oop_curve_type = 4
-
-    def draw(self):
-        super(MoleculeCanvas, self).draw()
-        self.drawVibration(self._row)
-
-    def drawVibration(self, row):
-        if row == -1: return
-        self._row = row
-        self._handleResize()
-        self.restore_background()
-        self.figure.plot_vibration(row, animated=True)
-        self.blit(self.figure.ax.bbox)
-
-
 class MainWindow(QtGui.QMainWindow):
 
     def __init__(self):
@@ -114,7 +93,7 @@ class MainWindow(QtGui.QMainWindow):
         mainLayout.addLayout(rightLayout)
 
         self.molecule_figure = plotter.VibrationFigure()
-        self.molecule_window = MoleculeCanvas(self.molecule_figure, self)
+        self.molecule_window = MplCanvas(self.molecule_figure, self)
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
         rightLayout.addWidget(self.molecule_window)
@@ -215,8 +194,7 @@ class MainWindow(QtGui.QMainWindow):
         self.frequency_list = QtGui.QListWidget(self)
         self.frequency_list.setSortingEnabled(True)
         self.frequency_list.currentTextChanged.connect(self.setMarker)
-        self.frequency_list.currentRowChanged.connect(partial(
-            self.molecule_window.drawVibration))
+        self.frequency_list.currentRowChanged.connect(self.setVibration)
 
         self.svgWidget = QtSvg.QSvgWidget()
         palette = QtGui.QPalette(self.svgWidget.palette())
@@ -434,7 +412,6 @@ class MainWindow(QtGui.QMainWindow):
 
         # show data
         self.spectrum_window.draw()
-        self.molecule_window.drawVibration(-1)
         self.molecule_window.draw()
 
         # populate frequency_list
@@ -508,6 +485,10 @@ class MainWindow(QtGui.QMainWindow):
             return
         self.spectrum_figure.mark_line(frequency)
         self.spectrum_window.draw()
+
+    def setVibration(self, row):
+        self.molecule_window.draw()
+        self.molecule_figure.plot_vibration(row, animated=True)
 
     def setScalingFactor(self, scalingFactor):
         self.molecule_figure.scaling_factor = float(scalingFactor)
