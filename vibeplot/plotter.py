@@ -23,7 +23,7 @@ This module contains the classes used to generate the plots.
 import logging
 logging.basicConfig()
 
-import matplotlib as mpl
+from matplotlib.figure import Figure
 from matplotlib.patches import Circle, Arc
 from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.path import Path
@@ -44,13 +44,12 @@ def _coords(atom):
     return np.array((atom.GetX(), atom.GetY(), atom.GetZ()))
 
 
-class MoleculePlotter(object):
+class MoleculeFigure(Figure):
     """Use :mod:`matplotlib` to draw a molecule.
 
     Attributes
     ----------
-    fig : :class:`~matplotlib.figure.Figure`
-    axes : :class:`~matplotlib.axes.Axes`
+    ax : :class:`~matplotlib.axes.Axes`
     show_atom_index : bool
         If True, the index of the atom is written next to its symbol.
     black_and_white : bool
@@ -64,12 +63,12 @@ class MoleculePlotter(object):
     """
 
     def __init__(self):
+        super(MoleculeFigure, self).__init__()
+        self.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
+        self.ax = self.add_subplot(111)
         self._molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
-        self.fig = mpl.figure.Figure()
-        self.fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
-        self.axes = self.fig.add_subplot(111)
-        for loc, spine in self.axes.spines.items():
+        for loc, spine in self.ax.spines.items():
             spine.set_visible(False)
         self.__initAxes()
         self.show_atom_index = False
@@ -80,10 +79,10 @@ class MoleculePlotter(object):
         self._animated = []
 
     def __initAxes(self):
-        self.axes.clear()
-        self.axes.set_xticks(())
-        self.axes.set_yticks(())
-        self.axes.hold(False)
+        self.ax.clear()
+        self.ax.set_xticks(())
+        self.ax.set_yticks(())
+        self.ax.hold(False)
         self._animated = []  # cleared
 
     def _2Dcoords(self, atom):
@@ -114,18 +113,18 @@ class MoleculePlotter(object):
         if (not self.molecule.NumAtoms() and not self.linewidth): return
         for collection in (
                 self.get_bond_collection(zorder=10, lw=self.linewidth),):
-            self.axes.add_collection(collection)
+            self.ax.add_collection(collection)
         for label in self.atom_label_text_iter(
                 self.show_atom_index,
                 zorder=100,
                 size=self.fontsize):
-            self.axes.text(*label)
+            self.ax.text(*label)
         # padding
-        self.axes.axis("image")
-        self.axes.axis("equal")
-        xmin, xmax, ymin, ymax = self.axes.axis()
-        self.axes.axis((xmin - self.padding, xmax + self.padding,
-                        ymin - self.padding, ymax + self.padding))
+        self.ax.axis("image")
+        self.ax.axis("equal")
+        xmin, xmax, ymin, ymax = self.ax.axis()
+        self.ax.axis((xmin - self.padding, xmax + self.padding,
+                      ymin - self.padding, ymax + self.padding))
 
     def save_molecule(self, filename):
         """
@@ -133,7 +132,7 @@ class MoleculePlotter(object):
         """
         for artist in self._animated:
             artist.set_animated(False)
-        self.fig.savefig(filename, dpi=300)
+        self.savefig(filename, dpi=300)
         for artist in self._animated:
             artist.set_animated(True)
 
@@ -201,7 +200,7 @@ class MoleculePlotter(object):
         return PathCollection(col, **kw)
 
 
-class VibrationPlotter(MoleculePlotter):
+class VibrationFigure(MoleculeFigure):
     """Use :mod:`matplotlib` to draw the vibration markers.
 
     Attributes
@@ -219,7 +218,7 @@ class VibrationPlotter(MoleculePlotter):
 
     """
     def __init__(self):
-        super(VibrationPlotter, self).__init__()
+        super(VibrationFigure, self).__init__()
         self.normal_coordinates = [[None]]
         self.scaling_factor = 100
         self.oop_curve_type = 4
@@ -257,8 +256,8 @@ class VibrationPlotter(MoleculePlotter):
                 lw=linewidth,
                 CURVE_TYPE=self.oop_curve_type, **kwargs)]
         for collection in self._animated:
-            self.axes.add_collection(collection)
-            self.axes.draw_artist(collection)
+            self.ax.add_collection(collection)
+            self.ax.draw_artist(collection)
 
     def _to_normal_coordinates(self, atom, index):
         def au2angstrom(x):
@@ -389,48 +388,47 @@ class VibrationPlotter(MoleculePlotter):
         return PathCollection(col, **kw)
 
 
-class SpectrumPlotter(object):
+class SpectrumFigure(Figure):
     """Use :mod:`matplotlib` to draw a spectrum as dirac vectors.
 
     Attributes
     ----------
     vibrations : `openbabel.OBVibrationData`
         Mapping intensities to frequencies.
-    fig : :class:`~matplotlib.figure.Figure`
-    axes : :class:`~matplotlib.axes.Axes`
+    ax : :class:`~matplotlib.axes.Axes`
     broadening : {None, "lorentzian", "gaussian"}
         Choose function to broaden the spectrum.
 
     """
     def __init__(self):
+        super(SpectrumFigure, self).__init__()
         self.vibrations = ob.OBVibrationData()
-        self.fig = mpl.figure.Figure()
-        self.axes = self.fig.add_subplot(111)
-        self.axes.hold(False)
+        self.ax = self.add_subplot(111)
+        self.ax.hold(False)
         self.broadening = None
         self.width = 8.0
         self.__initAxes()
 
     def __initAxes(self):
-        self.axes.clear()
-        self.axes.plot((0.0, 0.0), (0.0, 1.0), color="r", lw=2.0)
-        # settings do not stick after axes.clear()
-        self.axes.set_xlabel("Wavenumber [cm$^{-1}$]")
-        self.axes.axis([0, 4000, 0, 1.0])
-        self.axes.set_yticks(())
-        self.fig.tight_layout()
+        self.ax.clear()
+        self.ax.plot((0.0, 0.0), (0.0, 1.0), color="r", lw=2.0)
+        # settings do not stick after ax.clear()
+        self.ax.set_xlabel("Wavenumber [cm$^{-1}$]")
+        self.ax.axis([0, 4000, 0, 1.0])
+        self.ax.set_yticks(())
+        self.tight_layout()
 
     def plot_spectrum(self):
         """Convenience function to plot the spectrum."""
         self.__initAxes()
-        self.axes.add_collection(self.get_spectrum_collection(color='0.30'))
-        self.axes.add_line(self.get_broaden(linewidth=1.0, color='k'))
+        self.ax.add_collection(self.get_spectrum_collection(color='0.30'))
+        self.ax.add_line(self.get_broaden(linewidth=1.0, color='k'))
 
     def mark_line(self, marked):
         """Place marker at the frequency `marked`."""
-        marker = self.axes.lines[0]
+        marker = self.ax.lines[0]
         marker.set_xdata(marked)
-        self.axes.draw_artist(marker)
+        self.ax.draw_artist(marker)
 
     def get_broaden(self, **kwargs):
         """
@@ -440,7 +438,7 @@ class SpectrumPlotter(object):
         """
         if self.broadening is None or self.broadening == "none":
             return Line2D([0.0], [0.0])
-        xmin, xmax = self.axes.get_xlim()
+        xmin, xmax = self.ax.get_xlim()
         spkx, spky = broaden.broaden(
             self.vibrations.GetFrequencies(), self.vibrations.GetIntensities(),
             width=self.width, xmin=xmin, xmax=xmax,

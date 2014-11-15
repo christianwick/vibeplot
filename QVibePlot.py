@@ -39,12 +39,10 @@ import vibeplot.plotter as plotter
 class SpectrumMpl(FigureCanvas):
     """Widget holding the spectrum."""
 
-    def __init__(self, parent=None):
-        self._SpectrumPlotter = plotter.SpectrumPlotter()
-        self.axes = self._SpectrumPlotter.axes
+    def __init__(self, figure, parent=None):
+        super(SpectrumMpl, self).__init__(figure)
         self._oldSize = None
         self._background = None
-        FigureCanvas.__init__(self, self._SpectrumPlotter.fig)
         self.setParent(parent)
         self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
@@ -52,53 +50,52 @@ class SpectrumMpl(FigureCanvas):
         self._parent = parent
         if parent is None: return
         color = parent.palette().brush(QtGui.QPalette.Window).color()
-        self._SpectrumPlotter.fig.set_facecolor("#%X%X%X" % (color.red(),
-                                                             color.green(),
-                                                             color.blue()))
+        self.figure.set_facecolor("#%X%X%X" % (color.red(),
+                                               color.green(),
+                                               color.blue()))
 
     def parent(self):
         return self._parent
 
     def drawSpectrum(self):
-        self._SpectrumPlotter.plot_spectrum()
+        self.figure.plot_spectrum()
         self.draw()
-        self._background = self.copy_from_bbox(self.axes.bbox)
-        self._oldSize = self.axes.bbox.width, self.axes.bbox.height
+        self._background = self.copy_from_bbox(self.figure.ax.bbox)
+        self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
 
     def setVibrations(self, vibrations):
-        self._SpectrumPlotter.vibrations = vibrations
+        self.figure.vibrations = vibrations
 
     def setMarker(self, frequency):
         if not frequency: return
         frequency = float(frequency)
         self._handleResize()
         self.restore_region(self._background)
-        self._SpectrumPlotter.mark_line(frequency)
-        self.blit(self.axes.bbox)
+        self.figure.mark_line(frequency)
+        self.blit(self.figure.ax.bbox)
 
     def setBroadeningFunction(self, function_name):
-        self._SpectrumPlotter.broadening = function_name
+        self.figure.broadening = function_name
         self.drawSpectrum()
 
     def setFwhm(self, fwhm):
-        self._SpectrumPlotter.width = fwhm
+        self.figure.width = fwhm
         self.drawSpectrum()
 
     def saveSpectrum(self, filename):
-        self._SpectrumPlotter.save_spectrum(filename)
+        self.figure.save_spectrum(filename)
 
     def _handleResize(self):
-        if self._oldSize != (self.axes.bbox.width, self.axes.bbox.height):
+        if self._oldSize != (self.figure.ax.bbox.width,
+                             self.figure.ax.bbox.height):
             self.drawSpectrum()
 
 
 class MoleculeMpl(FigureCanvas):
     """Widget holding the molecule."""
 
-    def __init__(self, parent=None):
-        self._moleculePlotter = plotter.VibrationPlotter()
-        self.axes = self._moleculePlotter.axes
-        FigureCanvas.__init__(self, self._moleculePlotter.fig)
+    def __init__(self, figure, parent=None):
+        super(MoleculeMpl, self).__init__(figure)
         self.setParent(parent)
         self._row = -1
         self._oldSize = None
@@ -109,15 +106,16 @@ class MoleculeMpl(FigureCanvas):
         self._parent = parent
         if parent is None: return
         color = parent.palette().brush(QtGui.QPalette.Window).color()
-        self._moleculePlotter.fig.set_facecolor("#%X%X%X" % (color.red(),
-                                                             color.green(),
-                                                             color.blue()))
+        self.figure.set_facecolor("#%X%X%X" % (color.red(),
+                                               color.green(),
+                                               color.blue()))
 
     def parent(self):
         return self._parent
 
     def _handleResize(self):
-        if self._oldSize != (self.axes.bbox.width, self.axes.bbox.height):
+        if self._oldSize != (self.figure.ax.bbox.width,
+                             self.figure.ax.bbox.height):
             self.redraw()
 
     def redraw(self):
@@ -125,70 +123,70 @@ class MoleculeMpl(FigureCanvas):
         self.drawVibration(self._row)
 
     def drawMolecule(self):
-        self._moleculePlotter.plot_molecule()
+        self.figure.plot_molecule()
         self.draw()
-        self._background = self.copy_from_bbox(self.axes.bbox)
-        self._oldSize = self.axes.bbox.width, self.axes.bbox.height
+        self._background = self.copy_from_bbox(self.figure.ax.bbox)
+        self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
 
     def drawVibration(self, row):
         if row == -1: return
         self._row = row
         self._handleResize()
         self.restore_region(self._background)
-        self._moleculePlotter.plot_vibration(row, animated=True)
-        self.blit(self.axes.bbox)
+        self.figure.plot_vibration(row, animated=True)
+        self.blit(self.figure.ax.bbox)
 
     def setMolecule(self, molecule):
-        self._moleculePlotter.molecule = molecule
+        self.figure.molecule = molecule
         self._row = -1
 
     def setNormalCoords(self, normCoords):
-        self._moleculePlotter.normal_coordinates = normCoords
+        self.figure.normal_coordinates = normCoords
 
     def setScalingFactor(self, scalingFactor):
-        self._moleculePlotter.scaling_factor = float(scalingFactor)
+        self.figure.scaling_factor = float(scalingFactor)
         self.redraw()
 
     def scalingFactor(self):
-        return self._moleculePlotter.scaling_factor
+        return self.figure.scaling_factor
 
     def setThreshold(self, threshold):
-        self._moleculePlotter.threshold = float(threshold)
+        self.figure.threshold = float(threshold)
         self.redraw()
 
     def threshold(self):
-        return self._moleculePlotter.threshold
+        return self.figure.threshold
 
     def showAtomIndex(self, show=True):
-        self._moleculePlotter.show_atom_index = show
+        self.figure.show_atom_index = show
         self.redraw()
 
     def isShowAtomIndex(self):
-        return self._moleculePlotter.show_atom_index
+        return self.figure.show_atom_index
 
     def setAllBlackAtomLabels(self, black=True):
-        self._moleculePlotter.black_and_white = black
+        self.figure.black_and_white = black
         self.redraw()
 
     def isAllBlackAtomLabels(self):
-        return self._moleculePlotter.black_and_white
+        return self.figure.black_and_white
 
     def setFontSize(self, fontSize):
-        self._moleculePlotter.fontsize = int(fontSize)
+        self.figure.fontsize = int(fontSize)
         self.redraw()
 
     def fontSize(self):
-        return self._moleculePlotter.fontsize
+        return self.figure.fontsize
 
     def setLineWidth(self, lw):
-        self._moleculePlotter.linewidth = float(lw)
+        self.figure.linewidth = float(lw)
         self.redraw()
 
     def lineWidth(self):
-        return self._moleculePlotter.linewidth
+        return self.figure.linewidth
 
     def saveImage(self, filename):
-        self._moleculePlotter.save_molecule(filename)
+        self.figure.save_molecule(filename)
         self.redraw()
 
 
@@ -216,14 +214,14 @@ class MainWindow(QtGui.QMainWindow):
         mainLayout.addLayout(leftLayout)
         mainLayout.addLayout(rightLayout)
 
-        self.molecule_window = MoleculeMpl(self)
+        self.molecule_window = MoleculeMpl(plotter.VibrationFigure(), self)
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
         rightLayout.addWidget(self.molecule_window)
         self.toolbar = NavigationToolbar(self.molecule_window, self)
         rightLayout.addWidget(self.toolbar)
 
-        self.spectrum_window = SpectrumMpl(self)
+        self.spectrum_window = SpectrumMpl(plotter.SpectrumFigure(), self)
         self.spectrum_window.setMinimumHeight(200)
         rightLayout.addWidget(self.spectrum_window)
 
