@@ -73,11 +73,6 @@ class SpectrumCanvas(MplCanvas):
 
     def __init__(self, figure, parent=None):
         super(SpectrumCanvas, self).__init__(figure, parent)
-        self.setContextMenuPolicy(Qt.ActionsContextMenu)
-
-    def draw(self):
-        self.figure.plot_spectrum()
-        super(SpectrumCanvas, self).draw()
 
     def setMarker(self, frequency):
         if not frequency: return
@@ -216,6 +211,7 @@ class MainWindow(QtGui.QMainWindow):
         saveSpectrumAction = QtGui.QAction("save spectrum",
                                            self.spectrum_window)
         saveSpectrumAction.triggered.connect(self._saveSpectrum)
+        self.spectrum_window.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrum_window.addAction(saveSpectrumAction)
 
         for label, editor in (("font size", fontSizeCombo),
@@ -446,6 +442,7 @@ class MainWindow(QtGui.QMainWindow):
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
         self.spectrum_figure.vibrations = vibData
+        self.spectrum_figure.plot_spectrum()
         self.molecule_window.setMolecule(mol)
         self.molecule_figure.normal_coordinates = vibData.GetLx()
 
