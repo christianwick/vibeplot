@@ -79,9 +79,6 @@ class SpectrumCanvas(MplCanvas):
         self.figure.plot_spectrum()
         super(SpectrumCanvas, self).draw()
 
-    def setVibrations(self, vibrations):
-        self.figure.vibrations = vibrations
-
     def setMarker(self, frequency):
         if not frequency: return
         frequency = float(frequency)
@@ -89,17 +86,6 @@ class SpectrumCanvas(MplCanvas):
         self.restore_background()
         self.figure.mark_line(frequency)
         self.blit(self.figure.ax.bbox)
-
-    def setBroadeningFunction(self, function_name):
-        self.figure.broadening = function_name
-        self.draw()
-
-    def setFwhm(self, fwhm):
-        self.figure.width = fwhm
-        self.draw()
-
-    def saveSpectrum(self, filename):
-        self.figure.save_spectrum(filename)
 
 
 class MoleculeCanvas(MplCanvas):
@@ -126,55 +112,6 @@ class MoleculeCanvas(MplCanvas):
     def setMolecule(self, molecule):
         self.figure.molecule = molecule
         self._row = -1
-
-    def setNormalCoords(self, normCoords):
-        self.figure.normal_coordinates = normCoords
-
-    def setScalingFactor(self, scalingFactor):
-        self.figure.scaling_factor = float(scalingFactor)
-        self.draw()
-
-    def scalingFactor(self):
-        return self.figure.scaling_factor
-
-    def setThreshold(self, threshold):
-        self.figure.threshold = float(threshold)
-        self.draw()
-
-    def threshold(self):
-        return self.figure.threshold
-
-    def showAtomIndex(self, show=True):
-        self.figure.show_atom_index = show
-        self.draw()
-
-    def isShowAtomIndex(self):
-        return self.figure.show_atom_index
-
-    def setAllBlackAtomLabels(self, black=True):
-        self.figure.black_and_white = black
-        self.draw()
-
-    def isAllBlackAtomLabels(self):
-        return self.figure.black_and_white
-
-    def setFontSize(self, fontSize):
-        self.figure.fontsize = int(fontSize)
-        self.draw()
-
-    def fontSize(self):
-        return self.figure.fontsize
-
-    def setLineWidth(self, lw):
-        self.figure.linewidth = float(lw)
-        self.draw()
-
-    def lineWidth(self):
-        return self.figure.linewidth
-
-    def saveImage(self, filename):
-        self.figure.save_molecule(filename)
-        self.draw()
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -229,58 +166,52 @@ class MainWindow(QtGui.QMainWindow):
         fontSizeCombo = QtGui.QComboBox(self._moleculeControlBox)
         fontSizeCombo.addItems("6 8 10 12 14 18 20 24 32".split())
         currentIndex = \
-                fontSizeCombo.findText(str(self.molecule_window.fontSize()))
+                fontSizeCombo.findText(str(self.molecule_figure.fontsize))
         if currentIndex == -1:
             currentIndex = fontSizeCombo.findText("12")
         fontSizeCombo.setCurrentIndex(currentIndex)
-        fontSizeCombo.currentIndexChanged[str].connect(
-            partial(self.molecule_window.setFontSize))
+        fontSizeCombo.currentIndexChanged[str].connect(self.setFontSize)
 
         lineWidthCombo = QtGui.QComboBox(self._moleculeControlBox)
         lineWidthCombo.addItems("0.0 0.2 0.5 1.0 2.0 4.0".split())
         currentIndex = \
-                lineWidthCombo.findText(str(self.molecule_window.lineWidth()))
+                lineWidthCombo.findText(str(self.molecule_figure.linewidth))
         if currentIndex == -1:
             currentIndex = lineWidthCombo.findText("1.0")
         lineWidthCombo.setCurrentIndex(currentIndex)
-        lineWidthCombo.currentIndexChanged[str].connect(
-            partial(self.molecule_window.setLineWidth))
+        lineWidthCombo.currentIndexChanged[str].connect(self.setLineWidth)
 
         colorLabelCheckBox = QtGui.QCheckBox(self._moleculeControlBox)
         colorLabelCheckBox.setCheckState(
-            Qt.Checked if self.molecule_window.isAllBlackAtomLabels() else
+            Qt.Checked if self.molecule_figure.black_and_white else
             Qt.Unchecked)
-        colorLabelCheckBox.stateChanged.connect(
-            partial(self.molecule_window.setAllBlackAtomLabels))
+        colorLabelCheckBox.stateChanged.connect(self.setAllBlackAtomLabels)
 
         scalingFactorSpinBox = QtGui.QSpinBox(self._vibrationControlBox)
         scalingFactorSpinBox.setRange(0, 500)
         scalingFactorSpinBox.setSingleStep(5)
-        scalingFactorSpinBox.setValue(self.molecule_window.scalingFactor())
-        scalingFactorSpinBox.valueChanged.connect(
-            self.molecule_window.setScalingFactor)
+        scalingFactorSpinBox.setValue(self.molecule_figure.scaling_factor)
+        scalingFactorSpinBox.valueChanged.connect(self.setScalingFactor)
 
         thresholdComboBox = QtGui.QComboBox(self._vibrationControlBox)
         thresholdComboBox.addItems("0.0 0.1 0.2 1.0 2.5 5.0 10.0".split())
         thresholdComboBox.setToolTip("percent bond length/degree angles")
         currentIndex = thresholdComboBox.findText(
-            str(self.molecule_window.threshold()))
+            str(self.molecule_figure.threshold))
         if currentIndex == -1:
             currentIndex = thresholdComboBox.findText("1.0")
         thresholdComboBox.setCurrentIndex(currentIndex)
-        thresholdComboBox.currentIndexChanged[str].connect(
-            partial(self.molecule_window.setThreshold))
+        thresholdComboBox.currentIndexChanged[str].connect(self.setThreshold)
 
         broadeningComboBox = QtGui.QComboBox(self._spectrumControlBox)
         broadeningComboBox.addItems("none lorentzian gaussian".split())
         broadeningComboBox.setCurrentIndex(0)
         broadeningComboBox.currentIndexChanged[str].connect(
-            self.spectrum_window.setBroadeningFunction)
+            self.setBroadeningFunction)
 
         fwhmDoubleSpinBox = QtGui.QDoubleSpinBox(self._spectrumControlBox)
         fwhmDoubleSpinBox.setValue(8.0)
-        fwhmDoubleSpinBox.valueChanged.connect(
-            self.spectrum_window.setFwhm)
+        fwhmDoubleSpinBox.valueChanged.connect(self.setFwhm)
 
         saveSpectrumAction = QtGui.QAction("save spectrum",
                                            self.spectrum_window)
@@ -388,8 +319,7 @@ class MainWindow(QtGui.QMainWindow):
 
         self._atomIndexAction = QtGui.QAction("Atom index", self._viewMenu)
         self._atomIndexAction.setCheckable(True)
-        self._atomIndexAction.triggered.connect(partial(
-            self.molecule_window.showAtomIndex))
+        self._atomIndexAction.triggered.connect(self.showAtomIndex)
         self._viewMenu.addAction(self._atomIndexAction)
 
         self._showSkeletonAction = QtGui.QAction(
@@ -469,11 +399,6 @@ class MainWindow(QtGui.QMainWindow):
     def __initStatusBar(self):
         self.statusBar()
 
-    def setWindowTitle(self, text=""):
-        super(MainWindow, self).setWindowTitle(
-            'QVibeplot' if not text else
-            '%s - QVibeplot' % os.path.basename(text))
- 
     def _loadFile(self, filename=None, inFormat=None):
         if not filename:
             dataFile = self._settings.value("dataFile")
@@ -520,9 +445,9 @@ class MainWindow(QtGui.QMainWindow):
         vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
-        self.spectrum_window.setVibrations(vibData)
+        self.spectrum_figure.vibrations = vibData
         self.molecule_window.setMolecule(mol)
-        self.molecule_window.setNormalCoords(vibData.GetLx())
+        self.molecule_figure.normal_coordinates = vibData.GetLx()
 
         # reset
         self.frequency_list.clear()
@@ -568,7 +493,8 @@ class MainWindow(QtGui.QMainWindow):
                 filename += ".pdf"
             imageFile = QtCore.QFileInfo(filename)
             self._settings.setValue("imageFile", imageFile.filePath())
-        self.molecule_window.saveImage(imageFile.filePath())
+        self.molecule_figure.save_molecule(imageFile.filePath())
+        self.molecule_window.draw()
 
     def _saveSpectrum(self):
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
@@ -581,7 +507,44 @@ class MainWindow(QtGui.QMainWindow):
         if not filename: return
         if "." not in filename:
             filename += ".txt"
-        self.spectrum_window.saveSpectrum(filename)
+        self.spectrum_figure.save_spectrum(filename)
+
+    def setWindowTitle(self, text=""):
+        super(MainWindow, self).setWindowTitle(
+            'QVibeplot' if not text else
+            '%s - QVibeplot' % os.path.basename(text))
+
+    def setBroadeningFunction(self, function_name):
+        self.spectrum_figure.broadening = function_name
+        self.spectrum_window.draw()
+
+    def setFwhm(self, fwhm):
+        self.spectrum_figure.width = fwhm
+        self.spectrum_window.draw()
+
+    def setScalingFactor(self, scalingFactor):
+        self.molecule_figure.scaling_factor = float(scalingFactor)
+        self.molecule_window.draw()
+
+    def setThreshold(self, threshold):
+        self.molecule_figure.threshold = float(threshold)
+        self.molecule_window.draw()
+
+    def showAtomIndex(self, show=True):
+        self.molecule_figure.show_atom_index = show
+        self.molecule_window.draw()
+
+    def setAllBlackAtomLabels(self, black=True):
+        self.molecule_figure.black_and_white = black
+        self.molecule_window.draw()
+
+    def setFontSize(self, fontSize):
+        self.molecule_figure.fontsize = int(fontSize)
+        self.molecule_window.draw()
+
+    def setLineWidth(self, lw):
+        self.molecule_figure.linewidth = float(lw)
+        self.molecule_window.draw()
 
 
 def main():
