@@ -16,6 +16,9 @@ plop:
 lint:
 	pylint --include-ids=y --disable=C0103 QVibePlot.py
 
+rcc:
+	pyrcc4 -o rsc/__init__.py rsc/resources.qrc
+
 distribution:
 	python setup.py sdist
 
