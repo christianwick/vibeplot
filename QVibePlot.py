@@ -36,26 +36,28 @@ import openbabel as ob
 import vibeplot.plotter as plotter
 
 
-class SpectrumMpl(FigureCanvas):
+class MplCanvas(FigureCanvas):
+
+    def __init__(self, figure, parent=None):
+        super(MplCanvas, self).__init__(figure)
+        self.setParent(parent)
+
+    def setParent(self, parent):
+        super(MplCanvas, self).setParent(parent)
+        if parent:
+            color = parent.palette().brush(QtGui.QPalette.Window).color()
+            self.figure.set_facecolor("#%X%X%X" % (color.red(),
+                                                   color.green(),
+                                                   color.blue()))
+
+class SpectrumCanvas(MplCanvas):
     """Widget holding the spectrum."""
 
     def __init__(self, figure, parent=None):
-        super(SpectrumMpl, self).__init__(figure)
+        super(SpectrumCanvas, self).__init__(figure, parent)
         self._oldSize = None
         self._background = None
-        self.setParent(parent)
         self.setContextMenuPolicy(Qt.ActionsContextMenu)
-
-    def setParent(self, parent):
-        self._parent = parent
-        if parent is None: return
-        color = parent.palette().brush(QtGui.QPalette.Window).color()
-        self.figure.set_facecolor("#%X%X%X" % (color.red(),
-                                               color.green(),
-                                               color.blue()))
-
-    def parent(self):
-        return self._parent
 
     def drawSpectrum(self):
         self.figure.plot_spectrum()
@@ -91,27 +93,15 @@ class SpectrumMpl(FigureCanvas):
             self.drawSpectrum()
 
 
-class MoleculeMpl(FigureCanvas):
+class MoleculeCanvas(MplCanvas):
     """Widget holding the molecule."""
 
     def __init__(self, figure, parent=None):
-        super(MoleculeMpl, self).__init__(figure)
-        self.setParent(parent)
+        super(MoleculeCanvas, self).__init__(figure, parent)
         self._row = -1
         self._oldSize = None
         self._background = None
         self.oop_curve_type = 4
-
-    def setParent(self, parent):
-        self._parent = parent
-        if parent is None: return
-        color = parent.palette().brush(QtGui.QPalette.Window).color()
-        self.figure.set_facecolor("#%X%X%X" % (color.red(),
-                                               color.green(),
-                                               color.blue()))
-
-    def parent(self):
-        return self._parent
 
     def _handleResize(self):
         if self._oldSize != (self.figure.ax.bbox.width,
@@ -214,14 +204,14 @@ class MainWindow(QtGui.QMainWindow):
         mainLayout.addLayout(leftLayout)
         mainLayout.addLayout(rightLayout)
 
-        self.molecule_window = MoleculeMpl(plotter.VibrationFigure(), self)
+        self.molecule_window = MoleculeCanvas(plotter.VibrationFigure(), self)
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
         rightLayout.addWidget(self.molecule_window)
         self.toolbar = NavigationToolbar(self.molecule_window, self)
         rightLayout.addWidget(self.toolbar)
 
-        self.spectrum_window = SpectrumMpl(plotter.SpectrumFigure(), self)
+        self.spectrum_window = SpectrumCanvas(plotter.SpectrumFigure(), self)
         self.spectrum_window.setMinimumHeight(200)
         rightLayout.addWidget(self.spectrum_window)
 
