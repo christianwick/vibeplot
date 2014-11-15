@@ -42,6 +42,7 @@ class MplCanvas(FigureCanvas):
         super(MplCanvas, self).__init__(figure)
         self.setParent(parent)
         self._oldSize = None
+        self._background = None
 
     def setParent(self, parent):
         super(MplCanvas, self).setParent(parent)
@@ -51,9 +52,13 @@ class MplCanvas(FigureCanvas):
                                                    color.green(),
                                                    color.blue()))
 
+    def restore_background(self):
+        self.restore_region(self._background)
+
     def draw(self):
         super(MplCanvas, self).draw()
         self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
+        self._background = self.copy_from_bbox(self.figure.ax.bbox)
 
     def _handleResize(self):
         if self._oldSize != (self.figure.ax.bbox.width,
@@ -66,13 +71,11 @@ class SpectrumCanvas(MplCanvas):
 
     def __init__(self, figure, parent=None):
         super(SpectrumCanvas, self).__init__(figure, parent)
-        self._background = None
         self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
     def draw(self):
         self.figure.plot_spectrum()
         super(SpectrumCanvas, self).draw()
-        self._background = self.copy_from_bbox(self.figure.ax.bbox)
 
     def setVibrations(self, vibrations):
         self.figure.vibrations = vibrations
@@ -81,7 +84,7 @@ class SpectrumCanvas(MplCanvas):
         if not frequency: return
         frequency = float(frequency)
         self._handleResize()
-        self.restore_region(self._background)
+        self.restore_background()
         self.figure.mark_line(frequency)
         self.blit(self.figure.ax.bbox)
 
@@ -103,20 +106,18 @@ class MoleculeCanvas(MplCanvas):
     def __init__(self, figure, parent=None):
         super(MoleculeCanvas, self).__init__(figure, parent)
         self._row = -1
-        self._background = None
         self.oop_curve_type = 4
 
     def draw(self):
         self.figure.plot_molecule()
         super(MoleculeCanvas, self).draw()
-        self._background = self.copy_from_bbox(self.figure.ax.bbox)
         self.drawVibration(self._row)
 
     def drawVibration(self, row):
         if row == -1: return
         self._row = row
         self._handleResize()
-        self.restore_region(self._background)
+        self.restore_background()
         self.figure.plot_vibration(row, animated=True)
         self.blit(self.figure.ax.bbox)
 
