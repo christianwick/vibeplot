@@ -41,6 +41,8 @@ class MplCanvas(FigureCanvas):
     def __init__(self, figure, parent=None):
         super(MplCanvas, self).__init__(figure)
         self.setParent(parent)
+        if not hasattr(figure, "ax"):
+            figure.ax = figure.add_subplot(111)
         self._oldSize = None
         self._background = None
 
