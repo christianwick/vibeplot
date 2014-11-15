@@ -77,7 +77,6 @@ class MoleculeCanvas(MplCanvas):
         self.oop_curve_type = 4
 
     def draw(self):
-        self.figure.plot_molecule()
         super(MoleculeCanvas, self).draw()
         self.drawVibration(self._row)
 
@@ -424,6 +423,7 @@ class MainWindow(QtGui.QMainWindow):
         self.spectrum_figure.vibrations = vibData
         self.spectrum_figure.plot_spectrum()
         self.molecule_figure.molecule = mol
+        self.molecule_figure.plot_molecule()
         self.molecule_figure.normal_coordinates = vibData.GetLx()
 
         # reset
