@@ -201,14 +201,16 @@ class MainWindow(QtGui.QMainWindow):
         mainLayout.addLayout(leftLayout)
         mainLayout.addLayout(rightLayout)
 
-        self.molecule_window = MoleculeCanvas(plotter.VibrationFigure(), self)
+        self.molecule_figure = plotter.VibrationFigure()
+        self.molecule_window = MoleculeCanvas(self.molecule_figure, self)
         self.molecule_window.setMinimumHeight(400)
         self.molecule_window.setMinimumWidth(400)
         rightLayout.addWidget(self.molecule_window)
         self.toolbar = NavigationToolbar(self.molecule_window, self)
         rightLayout.addWidget(self.toolbar)
 
-        self.spectrum_window = SpectrumCanvas(plotter.SpectrumFigure(), self)
+        self.spectrum_figure = plotter.SpectrumFigure()
+        self.spectrum_window = SpectrumCanvas(self.spectrum_figure, self)
         self.spectrum_window.setMinimumHeight(200)
         rightLayout.addWidget(self.spectrum_window)
 
