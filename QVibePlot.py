@@ -41,6 +41,7 @@ class MplCanvas(FigureCanvas):
     def __init__(self, figure, parent=None):
         super(MplCanvas, self).__init__(figure)
         self.setParent(parent)
+        self._oldSize = None
 
     def setParent(self, parent):
         super(MplCanvas, self).setParent(parent)
@@ -50,20 +51,28 @@ class MplCanvas(FigureCanvas):
                                                    color.green(),
                                                    color.blue()))
 
+    def draw(self):
+        super(MplCanvas, self).draw()
+        self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
+
+    def _handleResize(self):
+        if self._oldSize != (self.figure.ax.bbox.width,
+                             self.figure.ax.bbox.height):
+            self.draw()
+
+
 class SpectrumCanvas(MplCanvas):
     """Widget holding the spectrum."""
 
     def __init__(self, figure, parent=None):
         super(SpectrumCanvas, self).__init__(figure, parent)
-        self._oldSize = None
         self._background = None
         self.setContextMenuPolicy(Qt.ActionsContextMenu)
 
-    def drawSpectrum(self):
+    def draw(self):
         self.figure.plot_spectrum()
-        self.draw()
+        super(SpectrumCanvas, self).draw()
         self._background = self.copy_from_bbox(self.figure.ax.bbox)
-        self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
 
     def setVibrations(self, vibrations):
         self.figure.vibrations = vibrations
@@ -78,19 +87,14 @@ class SpectrumCanvas(MplCanvas):
 
     def setBroadeningFunction(self, function_name):
         self.figure.broadening = function_name
-        self.drawSpectrum()
+        self.draw()
 
     def setFwhm(self, fwhm):
         self.figure.width = fwhm
-        self.drawSpectrum()
+        self.draw()
 
     def saveSpectrum(self, filename):
         self.figure.save_spectrum(filename)
-
-    def _handleResize(self):
-        if self._oldSize != (self.figure.ax.bbox.width,
-                             self.figure.ax.bbox.height):
-            self.drawSpectrum()
 
 
 class MoleculeCanvas(MplCanvas):
@@ -99,24 +103,14 @@ class MoleculeCanvas(MplCanvas):
     def __init__(self, figure, parent=None):
         super(MoleculeCanvas, self).__init__(figure, parent)
         self._row = -1
-        self._oldSize = None
         self._background = None
         self.oop_curve_type = 4
 
-    def _handleResize(self):
-        if self._oldSize != (self.figure.ax.bbox.width,
-                             self.figure.ax.bbox.height):
-            self.redraw()
-
-    def redraw(self):
-        self.drawMolecule()
-        self.drawVibration(self._row)
-
-    def drawMolecule(self):
+    def draw(self):
         self.figure.plot_molecule()
-        self.draw()
+        super(MoleculeCanvas, self).draw()
         self._background = self.copy_from_bbox(self.figure.ax.bbox)
-        self._oldSize = self.figure.ax.bbox.width, self.figure.ax.bbox.height
+        self.drawVibration(self._row)
 
     def drawVibration(self, row):
         if row == -1: return
@@ -135,49 +129,49 @@ class MoleculeCanvas(MplCanvas):
 
     def setScalingFactor(self, scalingFactor):
         self.figure.scaling_factor = float(scalingFactor)
-        self.redraw()
+        self.draw()
 
     def scalingFactor(self):
         return self.figure.scaling_factor
 
     def setThreshold(self, threshold):
         self.figure.threshold = float(threshold)
-        self.redraw()
+        self.draw()
 
     def threshold(self):
         return self.figure.threshold
 
     def showAtomIndex(self, show=True):
         self.figure.show_atom_index = show
-        self.redraw()
+        self.draw()
 
     def isShowAtomIndex(self):
         return self.figure.show_atom_index
 
     def setAllBlackAtomLabels(self, black=True):
         self.figure.black_and_white = black
-        self.redraw()
+        self.draw()
 
     def isAllBlackAtomLabels(self):
         return self.figure.black_and_white
 
     def setFontSize(self, fontSize):
         self.figure.fontsize = int(fontSize)
-        self.redraw()
+        self.draw()
 
     def fontSize(self):
         return self.figure.fontsize
 
     def setLineWidth(self, lw):
         self.figure.linewidth = float(lw)
-        self.redraw()
+        self.draw()
 
     def lineWidth(self):
         return self.figure.linewidth
 
     def saveImage(self, filename):
         self.figure.save_molecule(filename)
-        self.redraw()
+        self.draw()
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -532,8 +526,8 @@ class MainWindow(QtGui.QMainWindow):
             self._settings.setValue("imageFile", imageFile.path())
 
         # show data
-        self.spectrum_window.drawSpectrum()
-        self.molecule_window.drawMolecule()
+        self.spectrum_window.draw()
+        self.molecule_window.draw()
 
         # populate frequency_list
         for freq in vibData.GetFrequencies():
