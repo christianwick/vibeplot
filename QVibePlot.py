@@ -55,6 +55,8 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.spectrumPlotter = plotter.SpectrumPlotter()
         self.moleculeAxes = self.moleculeCanvas.figure.add_subplot(111)
         self.spectrumAxes = self.spectrumCanvas.figure.add_subplot(111)
+        self.spectrumIndex, = self.spectrumAxes.plot((0.0, 0.0), (0.0, 1.0),
+                                                     color="r", lw=2.0)
 
         self.clearMoleculeAxes()
         self.clearSpectrumAxes()
@@ -291,7 +293,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
 
     def clearSpectrumAxes(self):
         self.spectrumAxes.clear()
-        self.spectrumAxes.plot((0.0, 0.0), (0.0, 1.0), color="r", lw=2.0)
+        self.spectrumAxes.add_line(self.spectrumIndex)
         # settings do not stick after axes.clear()
         self.spectrumAxes.set_xlabel("Wavenumber [cm$^{-1}$]")
         self.spectrumAxes.axis([0, 4000, 0, 1])
@@ -356,7 +358,8 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         except ValueError:
             # frequency == u""
             return
-        self.spectrumPlotter.plot_line(self.spectrumAxes, frequency)
+        self.spectrumIndex.set_xdata(frequency)
+        self.spectrumAxes.draw_artist(self.spectrumIndex)
         self.spectrumCanvas.draw()
 
     def setVibration(self, row):

@@ -383,12 +383,6 @@ class SpectrumPlotter(object):
         axes.add_collection(self.get_spectrum_collection(color='0.30'))
         axes.add_line(self.get_broaden(linewidth=1.0, color='k'))
 
-    def plot_line(self, axes, marked):
-        """Place marker at the frequency `marked`."""
-        marker = axes.lines[0]
-        marker.set_xdata(marked)
-        axes.draw_artist(marker)
-
     def get_broaden(self, **kwargs):
         """
         Return :class:`~matplotlib.lines.Line2D` of the broadened
