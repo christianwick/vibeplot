@@ -368,38 +368,41 @@ class SpectrumPlotter(object):
     ----------
     vibrations : `openbabel.OBVibrationData`
         Mapping intensities to frequencies.
-    broadening : {None, "lorentzian", "gaussian"}
+    function : {None, "lorentzian", "gaussian"}
         Choose function to broaden the spectrum.
 
     """
     def __init__(self):
         super(SpectrumPlotter, self).__init__()
         self.vibrations = ob.OBVibrationData()
-        self.broadening = None
+        self.broadening = Line2D([], [], linewidth=1.0, color="k")
+        self.function = None
         self.width = 8.0
 
     def plot_spectrum(self, axes):
         """Convenience function to plot the spectrum."""
         axes.add_collection(self.get_spectrum_collection(color='0.30'))
-        axes.add_line(self.get_broaden(linewidth=1.0, color='k'))
+        axes.add_line(self.broadening)
+        self.update_broaden()
 
-    def get_broaden(self, **kwargs):
+    def update_broaden(self, **kwargs):
         """
         Return :class:`~matplotlib.lines.Line2D` of the broadened
         spectrum.
 
         """
-        if self.broadening is None or self.broadening == "none":
-            return Line2D([0.0], [0.0])
-        xmin, xmax = 0.0, 4000.0
-        spkx, spky = broaden.broaden(
-            self.vibrations.GetFrequencies(), self.vibrations.GetIntensities(),
-            width=self.width, xmin=xmin, xmax=xmax,
-            fun=dict(lorentzian=broaden.lorentzian,
-                     gaussian=broaden.gaussian)[self.broadening])
-        if spky.any():
-            spky /= spky.max()
-        return Line2D(spkx, spky, **kwargs)
+        if self.function and self.function != "none":
+            spkx, spky = broaden.broaden(
+                self.vibrations.GetFrequencies(),
+                self.vibrations.GetIntensities(),
+                width=self.width, xmin=0.0, xmax=4000.0,
+                fun=dict(lorentzian=broaden.lorentzian,
+                         gaussian=broaden.gaussian)[self.function])
+            self.broadening.set_data(spkx, spky/spky.max()
+                                     if spky.any() else spky)
+            self.broadening.set_visible(True)
+        else:
+            self.broadening.set_visible(False)
 
     def save_spectrum(self, filename):
         """Save broadened spectrum to file."""

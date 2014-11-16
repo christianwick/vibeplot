@@ -345,11 +345,13 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             '%s - QVibeplot' % os.path.basename(text))
 
     def setBroadeningFunction(self, function_name):
-        self.spectrumPlotter.broadening = function_name
+        self.spectrumPlotter.function = function_name
+        self.spectrumPlotter.update_broaden()
         self.spectrumCanvas.draw()
 
     def setFwhm(self, fwhm):
         self.spectrumPlotter.width = fwhm
+        self.spectrumPlotter.update_broaden()
         self.spectrumCanvas.draw()
 
     def setMarker(self, frequency):
