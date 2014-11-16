@@ -363,9 +363,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.spectrumCanvas.draw()
 
     def setVibration(self, row):
+        self.clearMoleculeAxes()
+        self.moleculePlotter.plot_molecule(self.moleculeAxes)
+        self.moleculePlotter.plot_vibration(self.moleculeAxes, row)
         self.moleculeCanvas.draw()
-        self.moleculePlotter.plot_vibration(self.moleculeAxes, row,
-                                            animated=True)
 
     def setScalingFactor(self, scalingFactor):
         self.moleculePlotter.scaling_factor = float(scalingFactor)
