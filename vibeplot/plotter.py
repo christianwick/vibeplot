@@ -27,6 +27,7 @@ from matplotlib.patches import Circle, Arc
 from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.path import Path
 from matplotlib.lines import Line2D
+from matplotlib.text import Text
 
 import openbabel as ob
 import numpy as np
@@ -98,11 +99,10 @@ class MoleculePlotter(object):
         for collection in (
                 self.get_bond_collection(zorder=10, lw=self.linewidth),):
             axes.add_collection(collection)
-        for label in self.atom_label_text_iter(
-                self.show_atom_index,
+        for label in self.get_atom_labels(
                 zorder=100,
                 size=self.fontsize):
-            axes.text(*label)
+            axes.add_artist(label)
         # padding
         axes.axis("image")
         axes.axis("equal")
@@ -110,7 +110,7 @@ class MoleculePlotter(object):
         axes.axis((xmin - self.padding, xmax + self.padding,
                    ymin - self.padding, ymax + self.padding))
 
-    def atom_label_text_iter(self, show_index=False, **kwargs):
+    def get_atom_labels(self, **kwargs):
         """Generate atomic labels.
 
         Returns
@@ -126,7 +126,8 @@ class MoleculePlotter(object):
         etab = ob.OBElementTable()
         for atom in ob.OBMolAtomIter(self.molecule):
             x, y = self._2Dcoords(atom)
-            label = (etab.GetSymbol(atom.GetAtomicNum()) if not show_index else
+            label = (etab.GetSymbol(atom.GetAtomicNum())
+                     if not self.show_atom_index else
                      "%s(%i)" % (etab.GetSymbol(atom.GetAtomicNum()),
                                  atom.GetIdx()))
             kw = dict(horizontalalignment="center",
@@ -135,7 +136,7 @@ class MoleculePlotter(object):
             if not self.black_and_white:
                 kw["color"] = etab.GetRGB(atom.GetAtomicNum())
             kw.update(kwargs)
-            yield [x, y, label, kw]
+            yield Text(x, y, label, **kw)
 
     def get_atom_collection(self, **kwargs):
         """
