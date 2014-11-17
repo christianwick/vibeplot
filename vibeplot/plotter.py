@@ -44,32 +44,29 @@ def _coords(atom):
     return np.array((atom.GetX(), atom.GetY(), atom.GetZ()))
 
 
+class AtomText(Text):
+
+    def __init__(self, x, y, text, index, color, **kwargs):
+        super(AtomText, self).__init__(x, y, text, color, **kwargs)
+        self.__text = text
+        self.__index = index
+        self.__color = color
+
+    def set_black_and_white(self, black_and_white=True):
+        self.set_color("black" if black_and_white else self.__color)
+
+    def show_index(self, show=True):
+        self.set_text("%s(%i)" % (self.__text, self.__index)
+                      if show else self.__text)
+
+
 class MoleculePlotter(object):
-    """Use :mod:`matplotlib` to draw a molecule.
-
-    Attributes
-    ----------
-    show_atom_index : bool
-        If True, the index of the atom is written next to its symbol.
-    black_and_white : bool
-        It True, no colors are used.
-    fontsize : int
-        The font size used to write the atomic labels.
-    linewidth : float
-        The linewidth used to draw the molecule.
-    padding : float
-
-    """
+    """Use :mod:`matplotlib` to draw a molecule."""
 
     def __init__(self):
         super(MoleculePlotter, self).__init__()
         self._molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
-        self.show_atom_index = False
-        self.black_and_white = False
-        self.fontsize = 12
-        self.linewidth = 1.0
-        self.padding = 0.3
 
     def _2Dcoords(self, atom):
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
@@ -93,23 +90,6 @@ class MoleculePlotter(object):
         assert(not self._molecule2D.Has3D())
         assert(self._molecule.NumAtoms() == self._molecule2D.NumAtoms())
 
-    def plot_molecule(self, axes):
-        """Convenience function used to plot the molecule."""
-        if (not self.molecule.NumAtoms() and not self.linewidth): return
-        for collection in (
-                self.get_bond_collection(zorder=10, lw=self.linewidth),):
-            axes.add_collection(collection)
-        for label in self.get_atom_labels(
-                zorder=100,
-                size=self.fontsize):
-            axes.add_artist(label)
-        # padding
-        axes.axis("image")
-        axes.axis("equal")
-        xmin, xmax, ymin, ymax = axes.axis()
-        axes.axis((xmin - self.padding, xmax + self.padding,
-                   ymin - self.padding, ymax + self.padding))
-
     def get_atom_labels(self, **kwargs):
         """Generate atomic labels.
 
@@ -126,17 +106,14 @@ class MoleculePlotter(object):
         etab = ob.OBElementTable()
         for atom in ob.OBMolAtomIter(self.molecule):
             x, y = self._2Dcoords(atom)
-            label = (etab.GetSymbol(atom.GetAtomicNum())
-                     if not self.show_atom_index else
-                     "%s(%i)" % (etab.GetSymbol(atom.GetAtomicNum()),
-                                 atom.GetIdx()))
             kw = dict(horizontalalignment="center",
                       verticalalignment="center",
                       bbox=box_props)
-            if not self.black_and_white:
-                kw["color"] = etab.GetRGB(atom.GetAtomicNum())
-            kw.update(kwargs)
-            yield Text(x, y, label, **kw)
+            kwargs.update(kw)
+            yield AtomText(x, y,
+                           etab.GetSymbol(atom.GetAtomicNum()), atom.GetIdx(),
+                           etab.GetRGB(atom.GetAtomicNum()),
+                           **kwargs)
 
     def get_atom_collection(self, **kwargs):
         """
@@ -153,8 +130,8 @@ class MoleculePlotter(object):
             circle = Circle(self._2Dcoords(atom), radius)
             col.append(circle)
         kw = {'facecolors': colors, 'edgecolors': colors}
-        kw.update(kwargs)
-        return PatchCollection(col, **kw)
+        kwargs.update(kw)
+        return PatchCollection(col, **kwargs)
 
     def get_bond_collection(self, **kwargs):
         """
@@ -171,8 +148,8 @@ class MoleculePlotter(object):
             segment = Path(verts, codes)
             col.append(segment)
         kw = {'edgecolors': 'k'}
-        kw.update(kwargs)
-        return PathCollection(col, **kw)
+        kwargs.update(kw)
+        return PathCollection(col, **kwargs)
 
 
 class VibrationPlotter(MoleculePlotter):
@@ -182,56 +159,18 @@ class VibrationPlotter(MoleculePlotter):
     ----------
     normal_coordinates : [[`openbabel.vector3`]]
         Indexed with vibration_number and atom_index.
-    scaling_factor : float
-        Scale the amplitude of the markers.
     oop_curve_type : {3, 4}
         Use either 3- or 4-points bezier to represent bond torsions.
     bond_colors, arc_colors, oop_colors : tuple
         Two matplotlib colors.
-    threshold : float
-        Do not show marker if amplitude below `threshold`.
 
     """
     def __init__(self):
         super(VibrationPlotter, self).__init__()
         self.normal_coordinates = [[None]]
-        self.scaling_factor = 100
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
-        self.threshold = 0.0
-
-    def plot_vibration(self, axes, index, **kwargs):
-        """Convenience function used to plot the markers.
-
-        Parameters
-        ----------
-        index : int
-            Index in `vibrations` list.
-        kwargs : dict
-            Keyword arguments forwarded to `matplotlib`.
-
-        """
-        for artist in axes.collections:
-            if artist.get_animated():
-                try:
-                    artist.remove()
-                except ValueError:
-                    pass
-        linewidth = self.linewidth if self.linewidth != 0.0 else 1.0
-        for collection in [
-                self.get_bondlength_change_collection(
-                    index, factor=self.scaling_factor, zorder=20,
-                    lw=linewidth, **kwargs),
-                self.get_angle_change_collection(
-                    index, factor=self.scaling_factor, zorder=25,
-                    lw=linewidth, **kwargs),
-                self.get_oop_angle_change_collection(
-                    index, factor=self.scaling_factor, zorder=50,
-                    lw=linewidth,
-                    CURVE_TYPE=self.oop_curve_type, **kwargs)]:
-            axes.add_collection(collection)
-            axes.draw_artist(collection)
 
     def _to_normal_coordinates(self, atom, index):
         def au2angstrom(x):
@@ -248,7 +187,8 @@ class VibrationPlotter(MoleculePlotter):
         atomnc.SetVector(ob.vector3(*nc))
         return atomnc
 
-    def get_bondlength_change_collection(self, index, factor=10.0, **kwargs):
+    def get_bondlength_change_collection(self, index, factor=10.0,
+                                         threshold=0.0, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of
         bondlength change markers (lines).
@@ -271,7 +211,7 @@ class VibrationPlotter(MoleculePlotter):
             amplitude = ((atom1.GetDistance(atom2) -
                           atom1nc.GetDistance(atom2nc)) /
                          obbond.GetLength())
-            if abs(amplitude) <= self.threshold: continue
+            if abs(amplitude) <= threshold: continue
             amp.append(abs(amplitude) * 5.0 * factor)
             colors.append(self.bond_colors[0 if amplitude < 0.0 else 1])
 
@@ -280,10 +220,11 @@ class VibrationPlotter(MoleculePlotter):
             col.append(segment)
         lw = 0.0 if not col else np.array(amp) * kwargs.pop("lw", 1.0)
         kw = {'edgecolors': colors, 'linewidths': lw}
-        kw.update(kwargs)
-        return PathCollection(col, **kw)
+        kwargs.update(kw)
+        return PathCollection(col, **kwargs)
 
-    def get_angle_change_collection(self, index, factor=10.0, **kwargs):
+    def get_angle_change_collection(self, index, factor=10.0, threshold=0.0,
+                                    **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of angle
         change markers (arcs).
@@ -299,7 +240,7 @@ class VibrationPlotter(MoleculePlotter):
                 for atom in vertex, atom1, atom2]
             amplitude = (atom1nc.GetAngle(vertexnc, atom2nc) - 
                          atom1.GetAngle(vertex, atom2))
-            if abs(amplitude) <= self.threshold: continue
+            if abs(amplitude) <= threshold: continue
             width = height = abs(amplitude) / 180.0 * factor
 
             d1, d2 = (self._2Dcoords(atom1) - self._2Dcoords(vertex),
@@ -315,11 +256,11 @@ class VibrationPlotter(MoleculePlotter):
                       width, height, 0.0, theta1, theta2)
             col.append(arc)
         kw = {'edgecolors': colors, 'facecolors': 'none'}
-        kw.update(kwargs)
-        return PatchCollection(col, **kw)
+        kwargs.update(kw)
+        return PatchCollection(col, **kwargs)
 
     def get_oop_angle_change_collection(self, index, factor=10.0,
-                                        CURVE_TYPE=4, **kwargs):
+                                        threshold=0.0, CURVE_TYPE=4, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of bond
         torsion markers (beziers).
@@ -342,7 +283,7 @@ class VibrationPlotter(MoleculePlotter):
             amplitude = (tnc - teq + 360.0) % 360.0
             if amplitude > 180.0:
                     amplitude -= 360.0
-            if abs(amplitude) <= self.threshold: continue
+            if abs(amplitude) <= threshold: continue
             intensity = abs(amplitude / 720.0) * factor
 
             a, b, c, d = [self._2Dcoords(atom) for atom in atoms]
@@ -358,8 +299,8 @@ class VibrationPlotter(MoleculePlotter):
             col.append(curve)
             edgecolors.append(color)
         kw = {'edgecolors': edgecolors, 'facecolors': 'none'}
-        kw.update(kwargs)
-        return PathCollection(col, **kw)
+        kwargs.update(kw)
+        return PathCollection(col, **kwargs)
 
 
 class SpectrumPlotter(object):
@@ -379,12 +320,6 @@ class SpectrumPlotter(object):
         self.broadening = Line2D([], [], linewidth=1.0, color="k")
         self.function = None
         self.width = 8.0
-
-    def plot_spectrum(self, axes):
-        """Convenience function to plot the spectrum."""
-        axes.add_collection(self.get_spectrum_collection(color='0.30'))
-        axes.add_line(self.broadening)
-        self.update_broaden()
 
     def update_broaden(self, **kwargs):
         """
@@ -429,7 +364,7 @@ class SpectrumPlotter(object):
             verts = [(frequency, 0.0), (frequency, intensity)]
             col.append(Path(verts, codes))
         kw = {}
-        kw.update(kwargs)
-        return PathCollection(col, **kw)
+        kwargs.update(kw)
+        return PathCollection(col, **kwargs)
 
 

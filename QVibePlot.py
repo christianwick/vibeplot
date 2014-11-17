@@ -23,6 +23,7 @@ import sys
 import os.path
 from glob import glob
 from functools import partial
+from itertools import chain
 
 # Import Qt modules
 from PyQt4 import QtGui, QtCore, QtSvg
@@ -52,14 +53,25 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.svgWidget.setPalette(palette)
 
         self.moleculePlotter = plotter.VibrationPlotter()
-        self.spectrumPlotter = plotter.SpectrumPlotter()
         self.moleculeAxes = self.moleculeCanvas.figure.add_subplot(111)
+        self.vibrationArtists = {}
+        self.spectrumPlotter = plotter.SpectrumPlotter()
         self.spectrumAxes = self.spectrumCanvas.figure.add_subplot(111)
         self.spectrumIndex, = self.spectrumAxes.plot((0.0, 0.0), (0.0, 1.0),
                                                      color="r", lw=2.0)
 
-        self.clearMoleculeAxes()
-        self.clearSpectrumAxes()
+        for __, spine in self.moleculeAxes.spines.items():
+            spine.set_visible(False)
+        self.moleculeAxes.set_xticks(())
+        self.moleculeAxes.set_yticks(())
+        self.moleculeCanvas.figure.tight_layout()
+
+        self.spectrumAxes.add_line(self.spectrumIndex)
+        self.spectrumAxes.add_line(self.spectrumPlotter.broadening)
+        self.spectrumAxes.set_xlabel("Wavenumber [cm$^{-1}$]")
+        self.spectrumAxes.axis([0, 4000, 0, 1])
+        self.spectrumAxes.set_yticks(())
+        self.spectrumCanvas.figure.tight_layout()
 
         self._settings = QtCore.QSettings("Mathias Laurin", "QVibePlot")
         if not self._settings.contains("imageFile") or \
@@ -67,22 +79,12 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             self._settings.setValue("imageFile", QtCore.QDir.homePath())
             self._settings.setValue("dataFile", QtCore.QDir.homePath())
 
-        # Set defaults
-        self.fontSizeComboBox.setCurrentIndex(
-            self.fontSizeComboBox.findText(str(self.moleculePlotter.fontsize)))
-        self.lineWidthComboBox.setCurrentIndex(
-            self.lineWidthComboBox.findText(str(self.moleculePlotter.linewidth)))
-        self.colorLabelCheckBox.setCheckState(
-            Qt.Checked if self.moleculePlotter.black_and_white else Qt.Unchecked)
-        self.scalingFactorSpinBox.setValue(self.moleculePlotter.scaling_factor)
-        self.thresholdComboBox.setCurrentIndex(
-            self.thresholdComboBox.findText(str(self.moleculePlotter.threshold)))
         # Connect widgets
         self.fontSizeComboBox.currentIndexChanged[str].connect(self.setFontSize)
         self.lineWidthComboBox.currentIndexChanged[str].connect(self.setLineWidth)
         self.colorLabelCheckBox.stateChanged.connect(self.setAllBlackAtomLabels)
-        self.scalingFactorSpinBox.valueChanged.connect(self.setScalingFactor)
-        self.thresholdComboBox.currentIndexChanged[str].connect(self.setThreshold)
+        self.scalingFactorSpinBox.valueChanged.connect(self.redrawVibration)
+        self.thresholdComboBox.currentIndexChanged.connect(self.redrawVibration)
         self.broadeningComboBox.currentIndexChanged[str].connect(
             self.setBroadeningFunction)
         self.fwhmDoubleSpinBox.valueChanged.connect(self.setFwhm)
@@ -248,16 +250,37 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
-        self.clearMoleculeAxes()
-        self.clearSpectrumAxes()
-        self.spectrumPlotter.vibrations = vibData
-        self.spectrumPlotter.plot_spectrum(self.spectrumAxes)
-        self.moleculePlotter.molecule = mol
-        self.moleculePlotter.plot_molecule(self.moleculeAxes)
         self.moleculePlotter.normal_coordinates = vibData.GetLx()
+        # draw spectrum
+        self.spectrumPlotter.vibrations = vibData
+        self.setMarker(0.0)
+        for collection in self.spectrumAxes.collections:
+            collection.remove()
+        self.spectrumAxes.add_collection(
+            self.spectrumPlotter.get_spectrum_collection(color="0.30"))
+        self.spectrumPlotter.update_broaden()
+        # draw molecule
+        self.moleculePlotter.molecule = mol
+        for artist in self.moleculeAxes.get_children():
+            try:
+                artist.remove()
+            except NotImplementedError:
+                pass
+        self.vibrationArtists = {}
+        self.moleculeAxes.add_collection(
+            self.moleculePlotter.get_bond_collection(
+                zorder=10, lw=str(self.lineWidthComboBox.currentText())))
+        for label in self.moleculePlotter.get_atom_labels(
+            zorder=100, size=str(self.fontSizeComboBox.currentText())):
+            self.moleculeAxes.add_artist(label)
+        # padding
+        self.moleculeAxes.ignore_existing_data_limits = True
+        padding = 0.3
+        xmin, xmax, ymin, ymax = self.moleculeAxes.axis("image")
+        self.moleculeAxes.axis((xmin - padding, xmax + padding,
+                                ymin - padding, ymax + padding))
 
         # reset
-        self.frequencyList.clear()
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
         if imageFile.isFile():
             self._settings.setValue("imageFile", imageFile.path())
@@ -267,6 +290,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.moleculeCanvas.draw()
 
         # populate frequencyList
+        self.frequencyList.clear()
         for freq in vibData.GetFrequencies():
             item = QtGui.QListWidgetItem()
             item.setData(Qt.DisplayRole, freq)
@@ -282,23 +306,6 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
         obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
         self.svgWidget.load(QtCore.QByteArray(obconv.WriteString(mol)))
-
-    def clearMoleculeAxes(self):
-        for __, spine in self.moleculeAxes.spines.items():
-            spine.set_visible(False)
-        self.moleculeAxes.clear()
-        self.moleculeAxes.set_xticks(())
-        self.moleculeAxes.set_yticks(())
-        self.moleculeAxes.hold(False)
-
-    def clearSpectrumAxes(self):
-        self.spectrumAxes.clear()
-        self.spectrumAxes.add_line(self.spectrumIndex)
-        # settings do not stick after axes.clear()
-        self.spectrumAxes.set_xlabel("Wavenumber [cm$^{-1}$]")
-        self.spectrumAxes.axis([0, 4000, 0, 1])
-        self.spectrumAxes.set_yticks(())
-        self.spectrumCanvas.figure.tight_layout()
 
     def _saveImage(self):
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
@@ -361,37 +368,71 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             # frequency == u""
             return
         self.spectrumIndex.set_xdata(frequency)
-        self.spectrumAxes.draw_artist(self.spectrumIndex)
         self.spectrumCanvas.draw()
 
     def setVibration(self, row):
-        self.clearMoleculeAxes()
-        self.moleculePlotter.plot_molecule(self.moleculeAxes)
-        self.moleculePlotter.plot_vibration(self.moleculeAxes, row)
+        for artist in chain(*self.vibrationArtists.itervalues()):
+            artist.set_visible(False)
+        if row == -1:
+            return
+        elif row in self.vibrationArtists:
+            for artist in self.vibrationArtists[row]:
+                artist.set_visible(True)
+        else:
+            kw = dict(factor=self.scalingFactorSpinBox.value(),
+                      threshold=float(self.thresholdComboBox.currentText()),
+                      linewidths=float(self.lineWidthComboBox.currentText()),
+                     )
+            for collection in self.vibrationArtists.setdefault(row, [
+                    self.moleculePlotter.get_bondlength_change_collection(
+                        row, zorder=20, **kw),
+                    self.moleculePlotter.get_angle_change_collection(
+                        row, zorder=25, **kw),
+                    self.moleculePlotter.get_oop_angle_change_collection(
+                        row, zorder=50, **kw),
+                    ]):
+                self.moleculeAxes.add_collection(collection)
         self.moleculeCanvas.draw()
 
-    def setScalingFactor(self, scalingFactor):
-        self.moleculePlotter.scaling_factor = float(scalingFactor)
-        self.moleculeCanvas.draw()
-
-    def setThreshold(self, threshold):
-        self.moleculePlotter.threshold = float(threshold)
-        self.moleculeCanvas.draw()
+    def redrawVibration(self, *args):
+        for artist in chain(*self.vibrationArtists.itervalues()):
+            artist.remove()
+        self.vibrationArtists = {}
+        self.setVibration(self.frequencyList.currentRow())
 
     def showAtomIndex(self, show=True):
-        self.moleculePlotter.show_atom_index = show
+        for artist in self.moleculeAxes.get_children():
+            try:
+                artist.show_index(show)
+            except AttributeError:
+                pass
         self.moleculeCanvas.draw()
 
-    def setAllBlackAtomLabels(self, black=True):
-        self.moleculePlotter.black_and_white = black
+    def setAllBlackAtomLabels(self, black=Qt.Checked):
+        for artist in self.moleculeAxes.get_children():
+            try:
+                artist.set_black_and_white(black == Qt.Checked)
+            except AttributeError:
+                pass
         self.moleculeCanvas.draw()
 
     def setFontSize(self, fontSize):
-        self.moleculePlotter.fontsize = int(fontSize)
+        for artist in self.moleculeAxes.get_children():
+            try:
+                artist.set_fontsize(fontSize)
+            except AttributeError:
+                pass
         self.moleculeCanvas.draw()
 
     def setLineWidth(self, lw):
-        self.moleculePlotter.linewidth = float(lw)
+        bl_changes = [collection[0] for collection in
+                      self.vibrationArtists.itervalues()]
+        for artist in self.moleculeAxes.get_children():
+            if artist in bl_changes: continue
+            try:
+                artist.set_linewidth(float(lw))
+            except AttributeError:
+                pass
         self.moleculeCanvas.draw()
 
 
