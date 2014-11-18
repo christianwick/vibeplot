@@ -52,7 +52,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         palette.setColor(palette.Window, QtGui.QColor("white"))
         self.svgWidget.setPalette(palette)
 
-        self.moleculePlotter = plotter.VibrationPlotter()
+        self.moleculePlotter = plotter.MoleculePlotter()
         self.moleculeAxes = self.moleculeCanvas.figure.add_subplot(111)
         self.vibrationArtists = {}
         self.spectrumPlotter = plotter.SpectrumPlotter()

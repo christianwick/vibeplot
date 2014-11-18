@@ -61,10 +61,24 @@ class AtomText(Text):
 
 
 class MoleculePlotter(object):
-    """Use :mod:`matplotlib` to draw a molecule."""
+    """Use :mod:`matplotlib` to draw a molecule.
 
+    Attributes
+    ----------
+    normal_coordinates : [[`openbabel.vector3`]]
+        Indexed with vibration_number and atom_index.
+    oop_curve_type : {3, 4}
+        Use either 3- or 4-points bezier to represent bond torsions.
+    bond_colors, arc_colors, oop_colors : tuple
+        Two matplotlib colors.
+
+    """
     def __init__(self):
         super(MoleculePlotter, self).__init__()
+        self.normal_coordinates = [[None]]
+        self.oop_curve_type = 4
+        self.bond_colors = self.arc_colors = ("b", "r")
+        self.oop_colors = ("g", "y")
         self._molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
 
@@ -72,6 +86,21 @@ class MoleculePlotter(object):
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
         assert(atom2D.GetZ() == 0.0)
         return np.array([atom2D.GetX(), atom2D.GetY()])
+
+    def _to_normal_coordinates(self, atom, index):
+        def au2angstrom(x):
+            """Convert `x` from atomic units to Angstrom."""
+            return 0.529177249 * x
+
+        def au2ar(vec):
+            return au2angstrom(_coords(vec))
+
+        nc = (_coords(atom.GetVector()) +
+              au2ar(self.normal_coordinates[index][atom.GetIdx() - 1]))
+        atomnc = ob.OBAtom()
+        atomnc.Duplicate(atom)
+        atomnc.SetVector(ob.vector3(*nc))
+        return atomnc
 
     @property
     def molecule(self):
@@ -150,42 +179,6 @@ class MoleculePlotter(object):
         kw = {'edgecolors': 'k'}
         kwargs.update(kw)
         return PathCollection(col, **kwargs)
-
-
-class VibrationPlotter(MoleculePlotter):
-    """Use :mod:`matplotlib` to draw the vibration markers.
-
-    Attributes
-    ----------
-    normal_coordinates : [[`openbabel.vector3`]]
-        Indexed with vibration_number and atom_index.
-    oop_curve_type : {3, 4}
-        Use either 3- or 4-points bezier to represent bond torsions.
-    bond_colors, arc_colors, oop_colors : tuple
-        Two matplotlib colors.
-
-    """
-    def __init__(self):
-        super(VibrationPlotter, self).__init__()
-        self.normal_coordinates = [[None]]
-        self.oop_curve_type = 4
-        self.bond_colors = self.arc_colors = ("b", "r")
-        self.oop_colors = ("g", "y")
-
-    def _to_normal_coordinates(self, atom, index):
-        def au2angstrom(x):
-            """Convert `x` from atomic units to Angstrom."""
-            return 0.529177249 * x
-
-        def au2ar(vec):
-            return au2angstrom(_coords(vec))
-
-        nc = (_coords(atom.GetVector()) +
-              au2ar(self.normal_coordinates[index][atom.GetIdx() - 1]))
-        atomnc = ob.OBAtom()
-        atomnc.Duplicate(atom)
-        atomnc.SetVector(ob.vector3(*nc))
-        return atomnc
 
     def get_bondlength_change_collection(self, index, factor=10.0,
                                          threshold=0.0, **kwargs):
