@@ -82,6 +82,7 @@ class MoleculePlotter(object):
         for __, spine in self.axes.spines.items():
             spine.set_visible(False)
         self.axes.figure.tight_layout()
+        self.draw = self.axes.figure.canvas.draw
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
@@ -351,26 +352,26 @@ class MoleculePlotter(object):
         self._add_bondlength_change_collection(row, scale, threshold)
         self._add_angle_change_collection(row, scale, threshold)
         self._add_oop_angle_change_collection(row, scale, threshold)
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def show_atom_index(self, show=True):
         for artist in self._mol_labels:
             artist.show_index(show)
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def set_black_labels(self, black=True):
         for artist in self._mol_labels:
             artist.set_black_labels(black)
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def set_fontsize(self, fontsize):
         for artist in self._mol_labels:
             artist.set_fontsize(fontsize)
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def set_linewidth(self, linewidth):
         self._mol_bonds.set_linewidth(float(linewidth))
-        self.axes.figure.canvas.draw()
+        self.draw()
 
 
 class SpectrumPlotter(object):
@@ -390,6 +391,7 @@ class SpectrumPlotter(object):
         self.axes.axis([0, 4000, 0, 1])
         self.axes.set_yticks(())
         self.axes.figure.tight_layout()
+        self.draw = self.axes.figure.canvas.draw
         self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
                                       color="r", lw=2.0)
         self.broadening = Line2D([], [], linewidth=1.0, color="k")
@@ -444,19 +446,19 @@ class SpectrumPlotter(object):
             self.needle.set_visible(False)
         else:
             self.needle.set_visible(True)
-            self.axes.figure.canvas.draw()
+            self.draw()
 
     def set_fwhm(self, fwhm):
         self._fwhm = fwhm
         self.update_broaden()
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def set_broadening_function(self, function_name):
         self._broadening_function = dict(
             lorentzian=broaden.lorentzian,
             gaussian=broaden.gaussian).get(function_name)
         self.update_broaden()
-        self.axes.figure.canvas.draw()
+        self.draw()
 
     def update_broaden(self, **kwargs):
         """
