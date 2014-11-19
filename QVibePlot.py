@@ -43,8 +43,8 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self)
-        self.rightHLayout.insertWidget(
-            self.rightHLayout.indexOf(self.moleculeCanvas) + 1, self.toolbar)
+        self.rightVLayout.insertWidget(
+            self.rightVLayout.indexOf(self.moleculeCanvas) + 1, self.toolbar)
 
         self.svgWidget = QtSvg.QSvgWidget()
         palette = QtGui.QPalette(self.svgWidget.palette())
@@ -70,8 +70,9 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.colorLabelCheckBox.stateChanged.connect(
             lambda checked:
             self.moleculePlotter.set_black_labels(checked==Qt.Checked))
-        self.scalingFactorSpinBox.valueChanged.connect(self._drawVibration)
-        self.thresholdComboBox.currentIndexChanged.connect(self._drawVibration)
+        self.bondlengthFilter.valueChanged.connect(self._drawVibration)
+        self.angleFilter.valueChanged.connect(self._drawVibration)
+        self.torsionFilter.valueChanged.connect(self._drawVibration)
         self.broadeningComboBox.currentIndexChanged[str].connect(
             self.spectrumPlotter.set_broadening_function)
         self.fwhmDoubleSpinBox.valueChanged.connect(
@@ -196,8 +197,9 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
     def _drawVibration(self):
         self.moleculePlotter.draw_vibration(
             self.frequencyList.currentRow(),
-            scale=self.scalingFactorSpinBox.value(),
-            threshold=self.thresholdComboBox.currentText())
+            self.bondlengthFilter.value(),
+            self.angleFilter.value(),
+            self.torsionFilter.value())
 
     def _loadFile(self, filename=None, inFormat=None):
         if not filename:

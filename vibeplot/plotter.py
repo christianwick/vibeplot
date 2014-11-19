@@ -194,7 +194,7 @@ class MoleculePlotter(object):
         self.axes.add_collection(self._mol_bonds)
 
     def _add_bondlength_change_collection(
-            self, index, factor=10.0, threshold=0.0, zorder=20, **kwargs):
+            self, index, threshold=0, zorder=20, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of
         bondlength change markers (lines).
@@ -214,11 +214,9 @@ class MoleculePlotter(object):
                     "Bond between %i and %i with length %.1f ignored."
                     % (atom1.GetIdx(), atom2.GetIdx(), obbond.GetLength()))
                 continue
-            amplitude = ((atom1.GetDistance(atom2) -
-                          atom1nc.GetDistance(atom2nc)) /
-                         obbond.GetLength())
-            if abs(amplitude) <= threshold: continue
-            amp.append(abs(amplitude) * 5.0 * factor)
+            amplitude = atom1.GetDistance(atom2) - atom1nc.GetDistance(atom2nc)
+            if abs(amplitude * 100) <= threshold: continue
+            amp.append(abs(amplitude * 50))
             colors.append(self.bond_colors[0 if amplitude < 0.0 else 1])
 
             verts = (self._2Dcoords(atom1), self._2Dcoords(atom2))
@@ -231,7 +229,7 @@ class MoleculePlotter(object):
         self.axes.add_collection(self._vib_bonds)
 
     def _add_angle_change_collection(
-            self, index, factor=10.0, threshold=0.0, zorder=25, **kwargs):
+            self, index, threshold=0, zorder=25, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of angle
         change markers (arcs).
@@ -248,7 +246,7 @@ class MoleculePlotter(object):
             amplitude = (atom1nc.GetAngle(vertexnc, atom2nc) - 
                          atom1.GetAngle(vertex, atom2))
             if abs(amplitude) <= threshold: continue
-            width = height = abs(amplitude) / 180.0 * factor
+            width = height = abs(amplitude) / 20
 
             d1, d2 = (self._2Dcoords(atom1) - self._2Dcoords(vertex),
                       self._2Dcoords(atom2) - self._2Dcoords(vertex))
@@ -268,7 +266,7 @@ class MoleculePlotter(object):
         self.axes.add_collection(self._vib_angles)
 
     def _add_oop_angle_change_collection(
-            self, index, factor=10.0, threshold=0.0, CURVE_TYPE=4, zorder=50,
+            self, index, threshold=0, CURVE_TYPE=4, zorder=50,
             **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of bond
@@ -293,7 +291,7 @@ class MoleculePlotter(object):
             if amplitude > 180.0:
                     amplitude -= 360.0
             if abs(amplitude) <= threshold: continue
-            intensity = abs(amplitude / 720.0) * factor
+            intensity = abs(amplitude / 40)
 
             a, b, c, d = [self._2Dcoords(atom) for atom in atoms]
             p2 = 0.5 * (b + c)  # middle
@@ -344,15 +342,14 @@ class MoleculePlotter(object):
                         ymin - padding, ymax + padding))
         self.draw()
 
-    def draw_vibration(self, row, scale, threshold):
+    def draw_vibration(self, row, bl_filter, angle_filter, torsion_filter):
         for artist in (self._vib_bonds, self._vib_angles, self._vib_oop):
             if artist:
                 artist.remove()
         if row is -1: return
-        threshold = float(threshold)
-        self._add_bondlength_change_collection(row, scale, threshold)
-        self._add_angle_change_collection(row, scale, threshold)
-        self._add_oop_angle_change_collection(row, scale, threshold)
+        self._add_bondlength_change_collection(row, bl_filter)
+        self._add_angle_change_collection(row, angle_filter)
+        self._add_oop_angle_change_collection(row, torsion_filter)
         self.draw()
 
     def show_atom_index(self, show=True):
