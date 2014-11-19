@@ -23,6 +23,8 @@ This module contains the classes used to generate the plots.
 import logging
 logging.basicConfig()
 
+from itertools import chain
+
 from matplotlib.patches import Circle, Arc
 from matplotlib.collections import PatchCollection, PathCollection
 from matplotlib.path import Path
@@ -52,8 +54,8 @@ class AtomText(Text):
         self.__index = index
         self.__color = color
 
-    def set_black_and_white(self, black_and_white=True):
-        self.set_color("black" if black_and_white else self.__color)
+    def set_black_labels(self, black=True):
+        self.set_color("black" if black else self.__color)
 
     def show_index(self, show=True):
         self.set_text("%s(%i)" % (self.__text, self.__index)
@@ -65,22 +67,30 @@ class MoleculePlotter(object):
 
     Attributes
     ----------
-    normal_coordinates : [[`openbabel.vector3`]]
-        Indexed with vibration_number and atom_index.
+    axes : mpl.Axes
     oop_curve_type : {3, 4}
         Use either 3- or 4-points bezier to represent bond torsions.
     bond_colors, arc_colors, oop_colors : tuple
         Two matplotlib colors.
 
     """
-    def __init__(self):
+    def __init__(self, axes):
         super(MoleculePlotter, self).__init__()
-        self.normal_coordinates = [[None]]
+        self.axes = axes
+        self.axes.set_xticks(())
+        self.axes.set_yticks(())
+        for __, spine in self.axes.spines.items():
+            spine.set_visible(False)
+        self.axes.figure.tight_layout()
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
-        self._molecule = ob.OBMol()
+        self.molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
+        self._vib_data = ob.OBVibrationData()
+        self._mol_bonds = None
+        self._mol_atoms = None
+        self._mol_labels = []
 
     def _2Dcoords(self, atom):
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
@@ -96,30 +106,24 @@ class MoleculePlotter(object):
             return au2angstrom(_coords(vec))
 
         nc = (_coords(atom.GetVector()) +
-              au2ar(self.normal_coordinates[index][atom.GetIdx() - 1]))
+              au2ar(self._vib_data.GetLx()[index][atom.GetIdx() - 1]))
         atomnc = ob.OBAtom()
         atomnc.Duplicate(atom)
         atomnc.SetVector(ob.vector3(*nc))
         return atomnc
 
-    @property
-    def molecule(self):
-        """`openbabel.OBMol` molecule with original 3D coordinates."""
-        return self._molecule
-
-    @molecule.setter
-    def molecule(self, molecule):
-        """`openbabel.OBMol` molecule with original 3D coordinates."""
-        self._molecule = molecule
-        self._molecule2D = ob.OBMol(molecule)
+    @staticmethod
+    def _sdg(molecule):
+        molecule2D = ob.OBMol(molecule)
         gen2D = ob.OBOp.FindType("gen2D")
         if not gen2D:
             raise NameError("name 'gen2D' is not defined")
-        gen2D.Do(self._molecule2D)
-        assert(not self._molecule2D.Has3D())
-        assert(self._molecule.NumAtoms() == self._molecule2D.NumAtoms())
+        gen2D.Do(molecule2D)
+        assert(not molecule2D.Has3D())
+        assert(molecule.NumAtoms() == molecule2D.NumAtoms())
+        return molecule2D
 
-    def get_atom_labels(self, **kwargs):
+    def _add_atom_labels(self, zorder=100, **kwargs):
         """Generate atomic labels.
 
         Returns
@@ -139,12 +143,15 @@ class MoleculePlotter(object):
                       verticalalignment="center",
                       bbox=box_props)
             kwargs.update(kw)
-            yield AtomText(x, y,
-                           etab.GetSymbol(atom.GetAtomicNum()), atom.GetIdx(),
-                           etab.GetRGB(atom.GetAtomicNum()),
-                           **kwargs)
+            label = AtomText(x, y,
+                             etab.GetSymbol(atom.GetAtomicNum()), atom.GetIdx(),
+                             etab.GetRGB(atom.GetAtomicNum()),
+                             zorder=zorder,
+                             **kwargs)
+            self._mol_labels.append(label)
+            self.axes.add_artist(label)
 
-    def get_atom_collection(self, **kwargs):
+    def _add_atom_collection(self, zorder=100, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection`
         representing atoms as circles.
@@ -160,9 +167,10 @@ class MoleculePlotter(object):
             col.append(circle)
         kw = {'facecolors': colors, 'edgecolors': colors}
         kwargs.update(kw)
-        return PatchCollection(col, **kwargs)
+        self._mol_atoms = PatchCollection(col, zorder=zorder, **kwargs)
+        self.axes.add_collection(self._mol_atoms)
 
-    def get_bond_collection(self, **kwargs):
+    def _add_bond_collection(self, zorder=10, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection`
         representing atomic bonds as segments.
@@ -178,7 +186,8 @@ class MoleculePlotter(object):
             col.append(segment)
         kw = {'edgecolors': 'k'}
         kwargs.update(kw)
-        return PathCollection(col, **kwargs)
+        self._mol_bonds = PathCollection(col, zorder=zorder, **kwargs)
+        self.axes.add_collection(self._mol_bonds)
 
     def get_bondlength_change_collection(self, index, factor=10.0,
                                          threshold=0.0, **kwargs):
@@ -294,6 +303,52 @@ class MoleculePlotter(object):
         kw = {'edgecolors': edgecolors, 'facecolors': 'none'}
         kwargs.update(kw)
         return PathCollection(col, **kwargs)
+
+    def clear(self):
+        for artist in self.axes.get_children():
+            try:
+                artist.remove()
+            except NotImplementedError:
+                pass
+
+    def set_molecule(self, molecule):
+        """`openbabel.OBMol` molecule with original 3D coordinates."""
+        self.molecule = molecule
+        self._molecule2D = self._sdg(molecule)
+        self.clear()
+
+    def set_vibration_data(self, vib_data):
+        self._vib_data = vib_data
+
+    def set_vibration(self, row):
+        pass
+
+    def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
+        self._add_bond_collection(lw=lw)
+        self._add_atom_labels(fontsize=fontsize)
+        self.axes.ignore_existing_data_limits = True
+        xmin, xmax, ymin, ymax = self.axes.axis("image")
+        self.axes.axis((xmin - padding, xmax + padding,
+                        ymin - padding, ymax + padding))
+
+    def show_atom_index(self, show=True):
+        for artist in self._mol_labels:
+            artist.show_index(show)
+        self.axes.figure.canvas.draw()
+
+    def set_black_labels(self, black=True):
+        for artist in self._mol_labels:
+            artist.set_black_labels(black)
+        self.axes.figure.canvas.draw()
+
+    def set_fontsize(self, fontsize):
+        for artist in self._mol_labels:
+            artist.set_fontsize(fontsize)
+        self.axes.figure.canvas.draw()
+
+    def set_linewidth(self, linewidth):
+        self._mol_bonds.set_linewidth(float(linewidth))
+        self.axes.figure.canvas.draw()
 
 
 class SpectrumPlotter(object):
