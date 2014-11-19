@@ -91,6 +91,9 @@ class MoleculePlotter(object):
         self._mol_bonds = None
         self._mol_atoms = None
         self._mol_labels = []
+        self._vib_bonds = None
+        self._vib_angles = None
+        self._vib_oop = None
 
     def _2Dcoords(self, atom):
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
@@ -189,8 +192,8 @@ class MoleculePlotter(object):
         self._mol_bonds = PathCollection(col, zorder=zorder, **kwargs)
         self.axes.add_collection(self._mol_bonds)
 
-    def get_bondlength_change_collection(self, index, factor=10.0,
-                                         threshold=0.0, **kwargs):
+    def _add_bondlength_change_collection(
+            self, index, factor=10.0, threshold=0.0, zorder=20, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of
         bondlength change markers (lines).
@@ -223,10 +226,11 @@ class MoleculePlotter(object):
         lw = 0.0 if not col else np.array(amp) * kwargs.pop("lw", 1.0)
         kw = {'edgecolors': colors, 'linewidths': lw}
         kwargs.update(kw)
-        return PathCollection(col, **kwargs)
+        self._vib_bonds = PathCollection(col, zorder=zorder, **kwargs)
+        self.axes.add_collection(self._vib_bonds)
 
-    def get_angle_change_collection(self, index, factor=10.0, threshold=0.0,
-                                    **kwargs):
+    def _add_angle_change_collection(
+            self, index, factor=10.0, threshold=0.0, zorder=25, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of angle
         change markers (arcs).
@@ -259,10 +263,12 @@ class MoleculePlotter(object):
             col.append(arc)
         kw = {'edgecolors': colors, 'facecolors': 'none'}
         kwargs.update(kw)
-        return PatchCollection(col, **kwargs)
+        self._vib_angles = PatchCollection(col, zorder=zorder, **kwargs)
+        self.axes.add_collection(self._vib_angles)
 
-    def get_oop_angle_change_collection(self, index, factor=10.0,
-                                        threshold=0.0, CURVE_TYPE=4, **kwargs):
+    def _add_oop_angle_change_collection(
+            self, index, factor=10.0, threshold=0.0, CURVE_TYPE=4, zorder=50,
+            **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection` of bond
         torsion markers (beziers).
@@ -302,7 +308,8 @@ class MoleculePlotter(object):
             edgecolors.append(color)
         kw = {'edgecolors': edgecolors, 'facecolors': 'none'}
         kwargs.update(kw)
-        return PathCollection(col, **kwargs)
+        self._vib_oop = PathCollection(col, zorder=zorder, **kwargs)
+        self.axes.add_collection(self._vib_oop)
 
     def clear(self):
         for artist in self.axes.get_children():
@@ -310,6 +317,9 @@ class MoleculePlotter(object):
                 artist.remove()
             except NotImplementedError:
                 pass
+        self._mol_labels = []
+        self._mol_atoms = self._mol_bonds = None
+        self._vib_bonds = self._vib_angles = self._vib_oop = None
 
     def set_molecule(self, molecule):
         """`openbabel.OBMol` molecule with original 3D coordinates."""
@@ -320,16 +330,28 @@ class MoleculePlotter(object):
     def set_vibration_data(self, vib_data):
         self._vib_data = vib_data
 
-    def set_vibration(self, row):
-        pass
-
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
+        for artist in chain((self._mol_atoms, self._mol_bonds),
+                            self._mol_labels):
+            if artist:
+                artist.remove()
         self._add_bond_collection(lw=lw)
         self._add_atom_labels(fontsize=fontsize)
         self.axes.ignore_existing_data_limits = True
         xmin, xmax, ymin, ymax = self.axes.axis("image")
         self.axes.axis((xmin - padding, xmax + padding,
                         ymin - padding, ymax + padding))
+
+    def draw_vibration(self, row, scale, threshold):
+        for artist in (self._vib_bonds, self._vib_angles, self._vib_oop):
+            if artist:
+                artist.remove()
+        if row is -1: return
+        threshold = float(threshold)
+        self._add_bondlength_change_collection(row, scale, threshold)
+        self._add_angle_change_collection(row, scale, threshold)
+        self._add_oop_angle_change_collection(row, scale, threshold)
+        self.axes.figure.canvas.draw()
 
     def show_atom_index(self, show=True):
         for artist in self._mol_labels:

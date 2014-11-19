@@ -23,7 +23,6 @@ import sys
 import os.path
 from glob import glob
 from functools import partial
-from itertools import chain
 
 # Import Qt modules
 from PyQt4 import QtGui, QtCore, QtSvg
@@ -52,9 +51,8 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         palette.setColor(palette.Window, QtGui.QColor("white"))
         self.svgWidget.setPalette(palette)
 
-        self.moleculeAxes = self.moleculeCanvas.figure.add_subplot(111)
-        self.moleculePlotter = plotter.MoleculePlotter(self.moleculeAxes)
-        self.vibrationArtists = {}
+        self.moleculePlotter = plotter.MoleculePlotter(
+            self.moleculeCanvas.figure.add_subplot(111))
         self.spectrumPlotter = plotter.SpectrumPlotter(
             self.spectrumCanvas.figure.add_subplot(111))
 
@@ -72,15 +70,15 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.colorLabelCheckBox.stateChanged.connect(
             lambda checked:
             self.moleculePlotter.set_black_labels(checked==Qt.Checked))
-        self.scalingFactorSpinBox.valueChanged.connect(self.redrawVibration)
-        self.thresholdComboBox.currentIndexChanged.connect(self.redrawVibration)
+        self.scalingFactorSpinBox.valueChanged.connect(self._drawVibration)
+        self.thresholdComboBox.currentIndexChanged.connect(self._drawVibration)
         self.broadeningComboBox.currentIndexChanged[str].connect(
             self.spectrumPlotter.set_broadening_function)
         self.fwhmDoubleSpinBox.valueChanged.connect(
             self.spectrumPlotter.set_fwhm)
         self.frequencyList.currentTextChanged.connect(
             self.spectrumPlotter.set_vibration)
-        self.frequencyList.currentRowChanged.connect(self.setVibration)
+        self.frequencyList.currentRowChanged.connect(self._drawVibration)
         # Create actions
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumCanvas.addAction(
@@ -195,6 +193,12 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             """.format(mpl.__version__)).splitlines())))
         ))
 
+    def _drawVibration(self):
+        self.moleculePlotter.draw_vibration(
+            self.frequencyList.currentRow(),
+            scale=self.scalingFactorSpinBox.value(),
+            threshold=self.thresholdComboBox.currentText())
+
     def _loadFile(self, filename=None, inFormat=None):
         if not filename:
             dataFile = self._settings.value("dataFile")
@@ -242,19 +246,15 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
                    if mol.HasData(ob.VibrationData) else
                    ob.OBVibrationData())
         self.moleculePlotter.set_vibration_data(vibData)
-        # draw spectrum
-        self.spectrumPlotter.set_vibration_data(vibData)
-        self.spectrumCanvas.draw()
-
-        # draw molecule
         self.moleculePlotter.set_molecule(mol)
         self.moleculePlotter.draw_molecule(
             lw=str(self.lineWidthComboBox.currentText()),
             fontsize=str(self.fontSizeComboBox.currentText())
         )
-        self.moleculeCanvas.draw()
+        self.spectrumPlotter.set_vibration_data(vibData)
 
-        self.vibrationArtists = {}
+        self.spectrumCanvas.draw()
+        self.moleculeCanvas.draw()
 
         # reset
         imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
@@ -322,36 +322,6 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         super(QVibeplot, self).setWindowTitle(
             'QVibeplot' if not text else
             '%s - QVibeplot' % os.path.basename(text))
-
-    def setVibration(self, row):
-        for artist in chain(*self.vibrationArtists.itervalues()):
-            artist.set_visible(False)
-        if row == -1:
-            return
-        elif row in self.vibrationArtists:
-            for artist in self.vibrationArtists[row]:
-                artist.set_visible(True)
-        else:
-            kw = dict(factor=self.scalingFactorSpinBox.value(),
-                      threshold=float(self.thresholdComboBox.currentText()),
-                      linewidths=float(self.lineWidthComboBox.currentText()),
-                     )
-            for collection in self.vibrationArtists.setdefault(row, [
-                    self.moleculePlotter.get_bondlength_change_collection(
-                        row, zorder=20, **kw),
-                    self.moleculePlotter.get_angle_change_collection(
-                        row, zorder=25, **kw),
-                    self.moleculePlotter.get_oop_angle_change_collection(
-                        row, zorder=50, **kw),
-                    ]):
-                self.moleculeAxes.add_collection(collection)
-        self.moleculeCanvas.draw()
-
-    def redrawVibration(self, *args):
-        for artist in chain(*self.vibrationArtists.itervalues()):
-            artist.remove()
-        self.vibrationArtists = {}
-        self.setVibration(self.frequencyList.currentRow())
 
 
 def main():
