@@ -55,23 +55,14 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.moleculePlotter = plotter.MoleculePlotter()
         self.moleculeAxes = self.moleculeCanvas.figure.add_subplot(111)
         self.vibrationArtists = {}
-        self.spectrumPlotter = plotter.SpectrumPlotter()
-        self.spectrumAxes = self.spectrumCanvas.figure.add_subplot(111)
-        self.spectrumIndex, = self.spectrumAxes.plot((0.0, 0.0), (0.0, 1.0),
-                                                     color="r", lw=2.0)
+        self.spectrumPlotter = plotter.SpectrumPlotter(
+            self.spectrumCanvas.figure.add_subplot(111))
 
         for __, spine in self.moleculeAxes.spines.items():
             spine.set_visible(False)
         self.moleculeAxes.set_xticks(())
         self.moleculeAxes.set_yticks(())
         self.moleculeCanvas.figure.tight_layout()
-
-        self.spectrumAxes.add_line(self.spectrumIndex)
-        self.spectrumAxes.add_line(self.spectrumPlotter.broadening)
-        self.spectrumAxes.set_xlabel("Wavenumber [cm$^{-1}$]")
-        self.spectrumAxes.axis([0, 4000, 0, 1])
-        self.spectrumAxes.set_yticks(())
-        self.spectrumCanvas.figure.tight_layout()
 
         self._settings = QtCore.QSettings("Mathias Laurin", "QVibePlot")
         if not self._settings.contains("imageFile") or \
@@ -86,9 +77,11 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.scalingFactorSpinBox.valueChanged.connect(self.redrawVibration)
         self.thresholdComboBox.currentIndexChanged.connect(self.redrawVibration)
         self.broadeningComboBox.currentIndexChanged[str].connect(
-            self.setBroadeningFunction)
-        self.fwhmDoubleSpinBox.valueChanged.connect(self.setFwhm)
-        self.frequencyList.currentTextChanged.connect(self.setMarker)
+            self.spectrumPlotter.set_broadening_function)
+        self.fwhmDoubleSpinBox.valueChanged.connect(
+            self.spectrumPlotter.set_fwhm)
+        self.frequencyList.currentTextChanged.connect(
+            self.spectrumPlotter.set_vibration)
         self.frequencyList.currentRowChanged.connect(self.setVibration)
         # Create actions
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
@@ -252,13 +245,9 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
                    ob.OBVibrationData())
         self.moleculePlotter.normal_coordinates = vibData.GetLx()
         # draw spectrum
-        self.spectrumPlotter.vibrations = vibData
-        self.setMarker(0.0)
-        for collection in self.spectrumAxes.collections:
-            collection.remove()
-        self.spectrumAxes.add_collection(
-            self.spectrumPlotter.get_spectrum_collection(color="0.30"))
-        self.spectrumPlotter.update_broaden()
+        self.spectrumPlotter.set_vibration_data(vibData)
+        self.spectrumCanvas.draw()
+
         # draw molecule
         self.moleculePlotter.molecule = mol
         for artist in self.moleculeAxes.get_children():
@@ -286,7 +275,6 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             self._settings.setValue("imageFile", imageFile.path())
 
         # show data
-        self.spectrumCanvas.draw()
         self.moleculeCanvas.draw()
 
         # populate frequencyList
@@ -350,25 +338,6 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         super(QVibeplot, self).setWindowTitle(
             'QVibeplot' if not text else
             '%s - QVibeplot' % os.path.basename(text))
-
-    def setBroadeningFunction(self, function_name):
-        self.spectrumPlotter.function = function_name
-        self.spectrumPlotter.update_broaden()
-        self.spectrumCanvas.draw()
-
-    def setFwhm(self, fwhm):
-        self.spectrumPlotter.width = fwhm
-        self.spectrumPlotter.update_broaden()
-        self.spectrumCanvas.draw()
-
-    def setMarker(self, frequency):
-        try:
-            frequency = float(frequency)
-        except ValueError:
-            # frequency == u""
-            return
-        self.spectrumIndex.set_xdata(frequency)
-        self.spectrumCanvas.draw()
 
     def setVibration(self, row):
         for artist in chain(*self.vibrationArtists.itervalues()):

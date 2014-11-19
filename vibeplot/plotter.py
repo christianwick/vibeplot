@@ -301,54 +301,40 @@ class SpectrumPlotter(object):
 
     Attributes
     ----------
-    vibrations : `openbabel.OBVibrationData`
-        Mapping intensities to frequencies.
+    axes : mpl.Axes
     function : {None, "lorentzian", "gaussian"}
         Choose function to broaden the spectrum.
 
     """
-    def __init__(self):
+    def __init__(self, axes):
         super(SpectrumPlotter, self).__init__()
-        self.vibrations = ob.OBVibrationData()
+        self.axes = axes
+        self.axes.set_xlabel("Wavenumber [cm$^{-1}$]")
+        self.axes.axis([0, 4000, 0, 1])
+        self.axes.set_yticks(())
+        self.axes.figure.tight_layout()
+        self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
+                                      color="r", lw=2.0)
         self.broadening = Line2D([], [], linewidth=1.0, color="k")
-        self.function = None
-        self.width = 8.0
+        self.axes.add_line(self.needle)
+        self.axes.add_line(self.broadening)
+        self._broadening_function = None
+        self._fwhm = 8.0
+        self._vib_data = ob.OBVibrationData()
+        self._spectrum = None
 
-    def update_broaden(self, **kwargs):
-        """
-        Return :class:`~matplotlib.lines.Line2D` of the broadened
-        spectrum.
-
-        """
-        if self.function and self.function != "none":
-            spkx, spky = broaden.broaden(
-                self.vibrations.GetFrequencies(),
-                self.vibrations.GetIntensities(),
-                width=self.width, xmin=0.0, xmax=4000.0,
-                fun=dict(lorentzian=broaden.lorentzian,
-                         gaussian=broaden.gaussian)[self.function])
-            self.broadening.set_data(spkx, spky/spky.max()
-                                     if spky.any() else spky)
-            self.broadening.set_visible(True)
-        else:
-            self.broadening.set_visible(False)
-
-    def save_spectrum(self, filename):
-        """Save broadened spectrum to file."""
-        np.savetxt(filename, self.get_broaden().get_xydata())
-
-    def get_spectrum_collection(self, **kwargs):
+    def _add_spectrum_collection(self, **kwargs):
         """
         Return :class:`~matplotlib.collections.PathCollection`
         representing the spectrum.
- 
+
         """
         codes = [Path.MOVETO,
                  Path.LINETO,
                 ]
         col = []
-        frequencies = self.vibrations.GetFrequencies()
-        intensities = np.array(self.vibrations.GetIntensities())
+        frequencies = self._vib_data.GetFrequencies()
+        intensities = np.array(self._vib_data.GetIntensities())
         if intensities.any():
             intensities /= intensities.max()
         if len(intensities) != len(frequencies):
@@ -358,6 +344,62 @@ class SpectrumPlotter(object):
             col.append(Path(verts, codes))
         kw = {}
         kwargs.update(kw)
-        return PathCollection(col, **kwargs)
+        self._spectrum = PathCollection(col, **kwargs)
+        self.axes.add_collection(self._spectrum)
 
+    def clear(self):
+        for collection in self.axes.collections:
+            collection.remove()
+        self._spectrum = None
+
+    def set_vibration_data(self, vib_data):
+        self._vib_data = vib_data
+        self.clear()
+        self.set_vibration("")
+        self._add_spectrum_collection(color="0.30")
+        self.update_broaden()
+
+    def set_vibration(self, freq):
+        try:
+            self.needle.set_xdata(float(freq))
+        except ValueError:
+            # freq not convertible to float
+            self.needle.set_visible(False)
+        else:
+            self.needle.set_visible(True)
+            self.axes.figure.canvas.draw()
+
+    def set_fwhm(self, fwhm):
+        self._fwhm = fwhm
+        self.update_broaden()
+        self.axes.figure.canvas.draw()
+
+    def set_broadening_function(self, function_name):
+        self._broadening_function = dict(
+            lorentzian=broaden.lorentzian,
+            gaussian=broaden.gaussian).get(function_name)
+        self.update_broaden()
+        self.axes.figure.canvas.draw()
+
+    def update_broaden(self, **kwargs):
+        """
+        Return :class:`~matplotlib.lines.Line2D` of the broadened
+        spectrum.
+
+        """
+        if self._broadening_function:
+            spkx, spky = broaden.broaden(
+                self._vib_data.GetFrequencies(),
+                self._vib_data.GetIntensities(),
+                width=self._fwhm, xmin=0.0, xmax=4000.0,
+                fun=self._broadening_function)
+            self.broadening.set_data(spkx, spky/spky.max()
+                                     if spky.any() else spky)
+            self.broadening.set_visible(True)
+        else:
+            self.broadening.set_visible(False)
+
+    def save_spectrum(self, filename):
+        """Save broadened spectrum to file."""
+        np.savetxt(filename, self.get_broaden().get_xydata())
 
