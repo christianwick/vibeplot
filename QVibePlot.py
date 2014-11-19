@@ -57,10 +57,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             self.spectrumCanvas.figure.add_subplot(111))
 
         self._settings = QtCore.QSettings("Mathias Laurin", "QVibePlot")
-        if not self._settings.contains("imageFile") or \
-           not self._settings.contains("dataFile"):
-            self._settings.setValue("imageFile", QtCore.QDir.homePath())
-            self._settings.setValue("dataFile", QtCore.QDir.homePath())
+        for setting in "imagePath dataPath".split():
+            if not self._settings.contains(setting):
+                self._settings.setValue(setting, QtCore.QDir.homePath())
+        self._imageFile = None
 
         # Connect widgets
         self.fontSizeComboBox.currentIndexChanged[str].connect(
@@ -201,12 +201,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
 
     def _loadFile(self, filename=None, inFormat=None):
         if not filename:
-            dataFile = self._settings.value("dataFile")
             filename = QtGui.QFileDialog.getOpenFileName(
                 self,
                 u"Open file",
-                os.path.dirname(dataFile)
-                if os.path.isfile(dataFile) else dataFile,
+                self._settings.value("dataPath"),
                 ";;".join((
                     " ".join(("Common formats (",
                               "*.moldem *.mold *.molf",
@@ -221,7 +219,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
                     "VASP (CONTCAR POSCAR *.vasp)",
                     "all files (*)")))
         if filename:
-            self._settings.setValue("dataFile", os.path.dirname(filename))
+            self._settings.setValue("dataPath", os.path.dirname(filename))
         else:
             return
 
@@ -252,14 +250,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             fontsize=str(self.fontSizeComboBox.currentText())
         )
         self.spectrumPlotter.set_vibration_data(vibData)
-
-        self.spectrumCanvas.draw()
-        self.moleculeCanvas.draw()
+        self.spectrumPlotter.draw_spectrum()
 
         # reset
-        imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
-        if imageFile.isFile():
-            self._settings.setValue("imageFile", imageFile.path())
+        self._imageFile = None
 
         # populate frequencyList
         self.frequencyList.clear()
@@ -280,29 +274,24 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.svgWidget.load(QtCore.QByteArray(obconv.WriteString(mol)))
 
     def _saveImage(self):
-        imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
-        if not imageFile.isFile():
+        if not self._imageFile:
             self._saveImageAs()
-            return
-        self.moleculePlotter.save_molecule(imageFile.filePath())
-        self.moleculeCanvas.draw()
+        self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
 
     def _saveImageAs(self):
-        imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
-        filename = QtGui.QFileDialog.getSaveFileName(
+        self._imageFile = QtGui.QFileDialog.getSaveFileName(
             self,
             u"Save image",
-            imageFile.path() \
-                    if imageFile.isFile() else imageFile.filePath(),
+            self._settings.value("imagePath"),
             ";;".join(("pdf files (*.pdf)",
-                        "raster images (*.png *.jpeg *.tiff)",
-                        "vector images (*.pdf *.eps *.ps)",
-                        "all files (*)",)))
-        if not filename: return
-        if "." not in filename:
-            filename += ".pdf"
-        imageFile = QtCore.QFileInfo(filename)
-        self._settings.setValue("imageFile", imageFile.filePath())
+                       "raster images (*.png *.jpeg *.tiff)",
+                       "vector images (*.pdf *.eps *.ps)",
+                       "all files (*)",)))
+        if not self._imageFile:
+            return
+        if "." not in self._imageFile:
+            self._imageFile += ".pdf"
+        self._settings.setValue("imagePath", os.path.dirname(self._imageFile))
         self._saveImage()
 
     def _saveSpectrum(self):

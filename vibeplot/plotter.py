@@ -342,6 +342,7 @@ class MoleculePlotter(object):
         xmin, xmax, ymin, ymax = self.axes.axis("image")
         self.axes.axis((xmin - padding, xmax + padding,
                         ymin - padding, ymax + padding))
+        self.draw()
 
     def draw_vibration(self, row, scale, threshold):
         for artist in (self._vib_bonds, self._vib_angles, self._vib_oop):
@@ -435,8 +436,11 @@ class SpectrumPlotter(object):
         self._vib_data = vib_data
         self.clear()
         self.set_vibration("")
+
+    def draw_spectrum(self):
         self._add_spectrum_collection(color="0.30")
         self.update_broaden()
+        self.draw()
 
     def set_vibration(self, freq):
         try:
@@ -480,5 +484,5 @@ class SpectrumPlotter(object):
 
     def save_spectrum(self, filename):
         """Save broadened spectrum to file."""
-        np.savetxt(filename, self.get_broaden().get_xydata())
+        np.savetxt(filename, self.broadening.get_xydata())
 
