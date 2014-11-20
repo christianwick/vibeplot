@@ -31,6 +31,8 @@ try:
     from PyQt4.QtGui import *
     from PyQt4.QtCore import *
     from PyQt4.QtSvg import QSvgWidget
+    from PyQt4 import uic
+    import rcc4
     mpl.rcParams["backend"] = "Qt4Agg"
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
@@ -39,30 +41,25 @@ except ImportError:
     from PyQt5.QtGui import QPalette, QColor, QKeySequence
     from PyQt5.QtCore import *
     from PyQt5.QtSvg import QSvgWidget
+    from PyQt5 import uic
+    import rcc5
     mpl.rcParams["backend"] = "Qt5Agg"
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
-
-try:
-    from qvibeplot_ui import Ui_MainWindow
-except:
-    print(
-"""You must run either of:
-        pyuic4 -o qvibeplot_ui.py qvibeplot.ui
-        pyuic5 -o qvibeplot_ui.py qvibeplot.ui
-before starting QVibeplot.""", file=sys.stderr)
-    sys.exit(1)
 
 import openbabel as ob
 
 import vibeplot.plotter as plotter
 
 
-class QVibeplot(QMainWindow, Ui_MainWindow):
+class QVibeplot(QMainWindow):
 
     def __init__(self):
         super(QVibeplot, self).__init__()
-        self.setupUi(self)
+        uifile = QFile(":/qvibeplot.ui")
+        uifile.open(QFile.ReadOnly)
+        uic.loadUi(uifile, self)
+        uifile.close()
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
         self.rightVLayout.insertWidget(
