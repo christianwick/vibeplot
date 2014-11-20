@@ -13,42 +13,54 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-"""Qt4 graphical user interface (GUI) to vibeplot."""
-
-import sip
-for qtype in "QString QTextStream QVariant".split():
-    sip.setapi(qtype, 2)
+"""Qt graphical user interface (GUI) to vibeplot."""
 
 import sys
 import os.path
 from glob import glob
 from functools import partial
 
-# Import Qt modules
-from PyQt4 import QtGui, QtCore, QtSvg
-Qt = QtCore.Qt
-# Import Matplotlib
+import sip
+for qtype in "QString QTextStream QVariant".split():
+    sip.setapi(qtype, 2)
+
+# Import Qt and matplotlib modules
 import matplotlib as mpl
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
+try:
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
+    from PyQt4.QtSvg import QSvgWidget
+    mpl.rcParams["backend"] = "Qt4Agg"
+    from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
+                                                    as NavigationToolbar)
+except ImportError:
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtGui import QPalette, QColor, QKeySequence
+    from PyQt5.QtCore import *
+    from PyQt5.QtSvg import QSvgWidget
+    mpl.rcParams["backend"] = "Qt5Agg"
+    from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
+                                                    as NavigationToolbar)
+
 import openbabel as ob
 
 from qvibeplot_ui import Ui_MainWindow
 import vibeplot.plotter as plotter
 
 
-class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
+class QVibeplot(QMainWindow, Ui_MainWindow):
 
     def __init__(self):
         super(QVibeplot, self).__init__()
         self.setupUi(self)
 
-        self.toolbar = NavigationToolbar(self.moleculeCanvas, self)
+        self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
         self.rightVLayout.insertWidget(
             self.rightVLayout.indexOf(self.moleculeCanvas) + 1, self.toolbar)
 
-        self.svgWidget = QtSvg.QSvgWidget()
-        palette = QtGui.QPalette(self.svgWidget.palette())
-        palette.setColor(palette.Window, QtGui.QColor("white"))
+        self.svgWidget = QSvgWidget()
+        palette = QPalette(self.svgWidget.palette())
+        palette.setColor(palette.Window, QColor("white"))
         self.svgWidget.setPalette(palette)
 
         self.moleculePlotter = plotter.MoleculePlotter(
@@ -56,10 +68,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.spectrumPlotter = plotter.SpectrumPlotter(
             self.spectrumCanvas.figure.add_subplot(111))
 
-        self._settings = QtCore.QSettings("Mathias Laurin", "QVibePlot")
+        self._settings = QSettings("Mathias Laurin", "QVibePlot")
         for setting in "imagePath dataPath".split():
             if not self._settings.contains(setting):
-                self._settings.setValue(setting, QtCore.QDir.homePath())
+                self._settings.setValue(setting, QDir.homePath())
         self._imageFile = None
 
         # Connect widgets
@@ -83,36 +95,35 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         # Create actions
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumCanvas.addAction(
-            QtGui.QAction(u"save spectrum", self.spectrumCanvas,
-                          triggered=self._saveSpectrum))
+            QAction(u"save spectrum", self.spectrumCanvas,
+                    triggered=self._saveSpectrum))
         # File menu
         self.fileMenu.addActions((
-            QtGui.QAction(u"Open", self.fileMenu,
-                          shortcut=QtGui.QKeySequence.Open,
-                          triggered=self._loadFile),
-            QtGui.QAction(u"Save image", self.fileMenu,
-                          shortcut=QtGui.QKeySequence.Save,
-                          triggered=self._saveImage),
-            QtGui.QAction(u"Save image as...", self.fileMenu,
-                          shortcut=QtGui.QKeySequence.SaveAs,
-                          triggered=self._saveImageAs),
-            QtGui.QAction(u"Quit", self.fileMenu,
-                          shortcut=QtGui.QKeySequence.Quit,
-                          triggered=self.close),
+            QAction(u"Open", self.fileMenu,
+                    shortcut=QKeySequence.Open,
+                    triggered=self._loadFile),
+            QAction(u"Save image", self.fileMenu,
+                    shortcut=QKeySequence.Save,
+                    triggered=self._saveImage),
+            QAction(u"Save image as...", self.fileMenu,
+                    shortcut=QKeySequence.SaveAs,
+                    triggered=self._saveImageAs),
+            QAction(u"Quit", self.fileMenu,
+                    shortcut=QKeySequence.Quit,
+                    triggered=self.close),
         ))
         # File > OrbiMol menu
-        self.orbiMolDbMenu = QtGui.QMenu(u"OrbiMol DB molecules")
+        self.orbiMolDbMenu = QMenu(u"OrbiMol DB molecules")
         self.orbiMolDbMenu.addActions([
-            QtGui.QAction(
-                os.path.splitext(os.path.basename(filename))[0],  # text
-                self.orbiMolDbMenu,
-                triggered=partial(self._loadFile, filename, "g03"))
+            QAction(os.path.splitext(os.path.basename(filename))[0],  # text
+                    self.orbiMolDbMenu,
+                    triggered=partial(self._loadFile, filename, "g03"))
             for filename in glob("data/orbimol/*.freq")])
         self.orbiMolDbMenu.addSeparator()
-        self.orbiMolDbMenu.addAction(QtGui.QAction(
-            u"About OrbiMol", self.orbiMolDbMenu,
-            triggered=partial(QtGui.QMessageBox.about, self, u"About OrbiMol",
-                              " ".join((
+        self.orbiMolDbMenu.addAction(
+            QAction(u"About OrbiMol", self.orbiMolDbMenu,
+                    triggered=partial(QMessageBox.about, self, u"About OrbiMol",
+                                      " ".join((
             u"""
             <p>OrbiMol is a free molecular orbital database by Patrick
             Chaquin and Franck Fuster. Laboratoire de Chimie
@@ -130,16 +141,16 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.fileMenu.addMenu(self.orbiMolDbMenu)
         # View menu
         self.viewMenu.addActions((
-            QtGui.QAction(u"Atom index", self.viewMenu, checkable=True,
-                          triggered=self.moleculePlotter.show_atom_index),
-            QtGui.QAction(u"Show skeleton", self.viewMenu,
-                          triggered=self.svgWidget.show),
+            QAction(u"Atom index", self.viewMenu, checkable=True,
+                    triggered=self.moleculePlotter.show_atom_index),
+            QAction(u"Show skeleton", self.viewMenu,
+                    triggered=self.svgWidget.show),
         ))
         # Help menu
         self.helpMenu.addActions((
-            QtGui.QAction(u"About", self.helpMenu, triggered=partial(
-                    QtGui.QMessageBox.about,
-                    self, "About QVibePlot", " ".join((
+            QAction(u"About", self.helpMenu, triggered=partial(
+                QMessageBox.about,
+                self, "About QVibePlot", " ".join((
             u"""
             QVibePlot visualizes vibrational analysis performed by
             density functional theory calculations (DFT) in terms of
@@ -159,11 +170,11 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             10.1021/ed300554z</a>.</p>
 
             """).splitlines()))),
-            QtGui.QAction(u"About Qt", self.helpMenu,
-                          triggered=partial(QtGui.QMessageBox.aboutQt, self)),
-            QtGui.QAction(u"About Open Babal", self.helpMenu,
-                          triggered=partial(QtGui.QMessageBox.about, self,
-                                            u"About Open Babel", " ".join((
+            QAction(u"About Qt", self.helpMenu,
+                    triggered=partial(QMessageBox.aboutQt, self)),
+            QAction(u"About Open Babal", self.helpMenu,
+                    triggered=partial(QMessageBox.about, self,
+                                      u"About Open Babel", " ".join((
             u"""
             <P>This program uses Open Babel.</P>
             <P>Open Babel is a chemical toolbox designed to speak the
@@ -176,9 +187,9 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
             more information.</P>
 
             """).splitlines()))),
-            QtGui.QAction(u"About Matplotlib", self.helpMenu,
-                          triggered=partial(QtGui.QMessageBox.about, self,
-                                            u"About Matplotlib", " ".join((
+            QAction(u"About Matplotlib", self.helpMenu,
+                    triggered=partial(QMessageBox.about, self,
+                                      u"About Matplotlib", " ".join((
             u"""
             <P>This program uses Matplotlib {0}.</P>
             <P>Matplotlib is a python 2D plotting library which
@@ -203,7 +214,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
 
     def _loadFile(self, filename=None, inFormat=None):
         if not filename:
-            filename = QtGui.QFileDialog.getOpenFileName(
+            filename = QFileDialog.getOpenFileName(
                 self,
                 u"Open file",
                 self._settings.value("dataPath"),
@@ -220,6 +231,10 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
                     "NWChem output (*.nwo)",
                     "VASP (CONTCAR POSCAR *.vasp)",
                     "all files (*)")))
+        try:
+            filename, __ = filename  # PyQt5
+        except ValueError:
+            pass  # PyQt4
         if filename:
             self._settings.setValue("dataPath", os.path.dirname(filename))
         else:
@@ -260,7 +275,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         # populate frequencyList
         self.frequencyList.clear()
         for freq in vibData.GetFrequencies():
-            item = QtGui.QListWidgetItem()
+            item = QListWidgetItem()
             item.setData(Qt.DisplayRole, freq)
             self.frequencyList.addItem(item)
 
@@ -273,7 +288,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         obconv.AddOption("C", obconv.OUTOPTIONS)  # implicit carbons
         obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
         obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
-        self.svgWidget.load(QtCore.QByteArray(obconv.WriteString(mol)))
+        self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
 
     def _saveImage(self):
         if not self._imageFile:
@@ -281,7 +296,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
 
     def _saveImageAs(self):
-        self._imageFile = QtGui.QFileDialog.getSaveFileName(
+        self._imageFile = QFileDialog.getSaveFileName(
             self,
             u"Save image",
             self._settings.value("imagePath"),
@@ -297,8 +312,8 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
         self._saveImage()
 
     def _saveSpectrum(self):
-        imageFile = QtCore.QFileInfo(self._settings.value("imageFile"))
-        filename = QtGui.QFileDialog.getSaveFileName(
+        imageFile = QFileInfo(self._settings.value("imageFile"))
+        filename = QFileDialog.getSaveFileName(
             self,
             u"Save spectrum values",
             imageFile.path() \
@@ -316,7 +331,7 @@ class QVibeplot(QtGui.QMainWindow, Ui_MainWindow):
 
 
 def main():
-    app = QtGui.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     app.lastWindowClosed.connect(app.quit)
     window = QVibeplot()
     window.show()

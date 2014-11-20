@@ -1,6 +1,14 @@
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt4.QtGui import QPalette
+
+# Import Qt and matplotlib modules
+try:
+    from PyQt4.QtGui import QPalette
+    from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg
+                                                    as FigureCanvas)
+except ImportError:
+    from PyQt5.QtGui import QPalette
+    from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
+                                                    as FigureCanvas)
 
 
 class MplCanvas(FigureCanvas):

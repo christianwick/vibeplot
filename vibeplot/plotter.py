@@ -208,7 +208,7 @@ class MoleculePlotter(object):
             atom1, atom2 = (self.molecule.GetAtom(obbond.GetBeginAtomIdx()),
                             self.molecule.GetAtom(obbond.GetEndAtomIdx()))
             atom1nc, atom2nc = [self._to_normal_coordinates(atom, index)
-                                for atom in atom1, atom2]
+                                for atom in (atom1, atom2)]
             if obbond.GetLength() == 0.0:
                 logger.error(
                     "Bond between %i and %i with length %.1f ignored."
@@ -242,7 +242,7 @@ class MoleculePlotter(object):
                                     for idx in angle]
             vertexnc, atom1nc, atom2nc = [
                 self._to_normal_coordinates(atom, index)
-                for atom in vertex, atom1, atom2]
+                for atom in (vertex, atom1, atom2)]
             amplitude = (atom1nc.GetAngle(vertexnc, atom2nc) - 
                          atom1.GetAngle(vertex, atom2))
             if abs(amplitude) <= threshold: continue
