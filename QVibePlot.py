@@ -15,6 +15,7 @@
 
 """Qt graphical user interface (GUI) to vibeplot."""
 
+from __future__ import print_function
 import sys
 import os.path
 from glob import glob
@@ -42,9 +43,18 @@ except ImportError:
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 
+try:
+    from qvibeplot_ui import Ui_MainWindow
+except:
+    print(
+"""You must run either of:
+        pyuic4 -o qvibeplot_ui.py qvibeplot.ui
+        pyuic5 -o qvibeplot_ui.py qvibeplot.ui
+before starting QVibeplot.""", file=sys.stderr)
+    sys.exit(1)
+
 import openbabel as ob
 
-from qvibeplot_ui import Ui_MainWindow
 import vibeplot.plotter as plotter
 
 
