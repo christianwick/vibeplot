@@ -89,6 +89,7 @@ class MoleculePlotter(object):
         self.molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
         self._vib_data = ob.OBVibrationData()
+        self._vib_data_lx = []
         self._mol_bonds = None
         self._mol_atoms = None
         self._mol_labels = []
@@ -110,7 +111,7 @@ class MoleculePlotter(object):
             return au2angstrom(_coords(vec))
 
         nc = (_coords(atom.GetVector()) +
-              au2ar(self._vib_data.GetLx()[index][atom.GetIdx() - 1]))
+              au2ar(self._vib_data_lx[index][atom.GetIdx() - 1]))
         atomnc = ob.OBAtom()
         atomnc.Duplicate(atom)
         atomnc.SetVector(ob.vector3(*nc))
@@ -328,6 +329,7 @@ class MoleculePlotter(object):
 
     def set_vibration_data(self, vib_data):
         self._vib_data = vib_data
+        self._vib_data_lx = vib_data.GetLx()  # for performance (profiled)
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         for artist in chain((self._mol_atoms, self._mol_bonds),
