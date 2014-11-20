@@ -28,15 +28,6 @@ for qtype in "QString QTextStream QVariant".split():
 # Import Qt and matplotlib modules
 import matplotlib as mpl
 try:
-    from PyQt4.QtGui import *
-    from PyQt4.QtCore import *
-    from PyQt4.QtSvg import QSvgWidget
-    from PyQt4 import uic
-    import rcc4
-    mpl.rcParams["backend"] = "Qt4Agg"
-    from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
-                                                    as NavigationToolbar)
-except ImportError:
     from PyQt5.QtWidgets import *
     from PyQt5.QtGui import QPalette, QColor, QKeySequence
     from PyQt5.QtCore import *
@@ -45,6 +36,15 @@ except ImportError:
     import rcc5
     mpl.rcParams["backend"] = "Qt5Agg"
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
+                                                    as NavigationToolbar)
+except ImportError:
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
+    from PyQt4.QtSvg import QSvgWidget
+    from PyQt4 import uic
+    import rcc4
+    mpl.rcParams["backend"] = "Qt4Agg"
+    from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 
 import openbabel as ob
