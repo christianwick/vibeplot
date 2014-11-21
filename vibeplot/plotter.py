@@ -41,11 +41,6 @@ import vibeplot.utils.broaden as broaden
 logger = logging.getLogger("vibeplot")
 
 
-def _coords(atom):
-    """Returns a numpy array with the coordinates of the atom."""
-    return np.array((atom.GetX(), atom.GetY(), atom.GetZ()))
-
-
 class AtomText(Text):
 
     def __init__(self, x, y, text, index, color, **kwargs):
@@ -103,18 +98,15 @@ class MoleculePlotter(object):
         return np.array([atom2D.GetX(), atom2D.GetY()])
 
     def _to_normal_coordinates(self, atom, index):
-        def au2angstrom(x):
-            """Convert `x` from atomic units to Angstrom."""
-            return 0.529177249 * x
 
-        def au2ar(vec):
-            return au2angstrom(_coords(vec))
+        def ar(vec):
+            """Returns a numpy array with the coordinates of the vector."""
+            return np.array((vec.GetX(), vec.GetY(), vec.GetZ()))
 
-        nc = (_coords(atom.GetVector()) +
-              au2ar(self._vib_data_lx[index][atom.GetIdx() - 1]))
         atomnc = ob.OBAtom()
         atomnc.Duplicate(atom)
-        atomnc.SetVector(ob.vector3(*nc))
+        nc = ar(atom) + self._vib_data_lx[index][atom.GetIdx() - 1]
+        atomnc.SetVector(*nc)
         return atomnc
 
     @staticmethod
@@ -329,7 +321,11 @@ class MoleculePlotter(object):
 
     def set_vibration_data(self, vib_data):
         self._vib_data = vib_data
-        self._vib_data_lx = vib_data.GetLx()  # for performance (profiled)
+        # profiling shows performance increase:
+        self._vib_data_lx = np.array(
+            [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
+             for row in vib_data.GetLx()], dtype=float)
+        self._vib_data_lx *= 0.529177249  # to angstroem
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         for artist in chain((self._mol_atoms, self._mol_bonds),
