@@ -77,7 +77,7 @@ class MoleculePlotter(object):
         for __, spine in self.axes.spines.items():
             spine.set_visible(False)
         self.axes.figure.tight_layout()
-        self.draw = self.axes.figure.canvas.draw
+        self.draw = self.axes.figure.canvas.draw_idle
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
@@ -387,7 +387,7 @@ class SpectrumPlotter(object):
         self.axes.axis([0, 4000, 0, 1])
         self.axes.set_yticks(())
         self.axes.figure.tight_layout()
-        self.draw = self.axes.figure.canvas.draw
+        self.draw = self.axes.figure.canvas.draw_idle
         self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
                                       color="r", lw=2.0)
         self.broadening = Line2D([], [], linewidth=1.0, color="k")
