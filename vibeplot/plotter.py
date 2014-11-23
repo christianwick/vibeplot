@@ -12,13 +12,9 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-"""
-vibeplot.plotter module
-=======================
 
-This module contains the classes used to generate the plots.
+"""Classes used to generate the plots using matplotlib."""
 
-"""
 
 import logging
 logging.basicConfig()
@@ -43,6 +39,8 @@ logger = logging.getLogger("vibeplot")
 
 class AtomText(Text):
 
+    """Extend matplotlib.Text with set_black_labels and show_index."""
+
     def __init__(self, x, y, text, index, color, **kwargs):
         super(AtomText, self).__init__(x, y, text, color, **kwargs)
         self.__text = text
@@ -50,23 +48,28 @@ class AtomText(Text):
         self.__color = color
 
     def set_black_labels(self, black=True):
+        """Draw all atom labels black."""
         self.set_color("black" if black else self.__color)
 
     def show_index(self, show=True):
+        """Show atom index."""
         self.set_text("%s(%i)" % (self.__text, self.__index)
                       if show else self.__text)
 
 
 class MoleculePlotter(object):
-    """Use :mod:`matplotlib` to draw a molecule.
+    """Draw molecule and vibration.
 
-    Attributes
-    ----------
-    axes : mpl.Axes
-    oop_curve_type : {3, 4}
-        Use either 3- or 4-points bezier to represent bond torsions.
-    bond_colors, arc_colors, oop_colors : tuple
-        Two matplotlib colors.
+    Arguments:
+        axes (matplotlib.Axes): axes to draw on.
+
+    Attributes:
+        oop_curve_type: Use either 3- or 4-points bezier to represent bond
+          torsion.
+        bond_colors (tuple): Two matplotlib colors.
+        arc_colors (tuple): Two matplotlib colors.
+        oop_colors (tuple): Two matplotlib colors.
+        molecule (ob.OBMol): The molecule to draw.
 
     """
     def __init__(self, axes):
@@ -93,12 +96,17 @@ class MoleculePlotter(object):
         self._vib_oop = None
 
     def _2Dcoords(self, atom):
+        """Returns:
+            The 2D coordinates for `atom`.
+        """
         atom2D = self._molecule2D.GetAtom(atom.GetIdx())
         assert(atom2D.GetZ() == 0.0)
         return np.array([atom2D.GetX(), atom2D.GetY()])
 
     def _to_normal_coordinates(self, atom, index):
-
+        """Returns:
+            The `atom`'s normal coordinates for normal mode at `index`.
+        """
         def ar(vec):
             """Returns a numpy array with the coordinates of the vector."""
             return np.array((vec.GetX(), vec.GetY(), vec.GetZ()))
@@ -111,6 +119,7 @@ class MoleculePlotter(object):
 
     @staticmethod
     def _sdg(molecule):
+        """Structure diagram generation."""
         molecule2D = ob.OBMol(molecule)
         gen2D = ob.OBOp.FindType("gen2D")
         if not gen2D:
@@ -121,17 +130,7 @@ class MoleculePlotter(object):
         return molecule2D
 
     def _add_atom_labels(self, zorder=100, **kwargs):
-        """Generate atomic labels.
-
-        Returns
-        -------
-        x, y : float
-            Position of the label.
-        label : string
-        kw : dict
-            Other arguments to pass to `self.axes.text`.
-
-        """
+        """Draw atom labels on the axes."""
         box_props = dict(boxstyle='round', facecolor='white', edgecolor='none')
         etab = ob.OBElementTable()
         for atom in ob.OBMolAtomIter(self.molecule):
@@ -149,11 +148,7 @@ class MoleculePlotter(object):
             self.axes.add_artist(label)
 
     def _add_atom_collection(self, zorder=100, **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection`
-        representing atoms as circles.
-
-        """
+        """Draw atoms as colored circles on the axes."""
         col = []
         colors = []
         etab = ob.OBElementTable()
@@ -168,11 +163,7 @@ class MoleculePlotter(object):
         self.axes.add_collection(self._mol_atoms)
 
     def _add_bond_collection(self, zorder=10, **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection`
-        representing atomic bonds as segments.
-
-        """
+        """Draw molecule skeleton on the axes."""
         col = []
         codes = [Path.MOVETO, Path.LINETO,]  # segment
         for obbond in ob.OBMolBondIter(self.molecule):
@@ -188,11 +179,7 @@ class MoleculePlotter(object):
 
     def _add_bondlength_change_collection(
             self, index, threshold=0, zorder=20, **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection` of
-        bondlength change markers (lines).
-
-        """
+        """Comute and draw bondlength changes on the axes."""
         codes = [Path.MOVETO, Path.LINETO]
         col = []
         amp = []
@@ -223,11 +210,7 @@ class MoleculePlotter(object):
 
     def _add_angle_change_collection(
             self, index, threshold=0, zorder=25, **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection` of angle
-        change markers (arcs).
-
-        """
+        """Compute and draw angle changes on the axes."""
         col = []
         colors = []
         for angle in ob.OBMolAngleIter(self.molecule):
@@ -261,11 +244,7 @@ class MoleculePlotter(object):
     def _add_oop_angle_change_collection(
             self, index, threshold=0, CURVE_TYPE=4, zorder=50,
             **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection` of bond
-        torsion markers (beziers).
-
-        """
+        """Compute and draw torsion changes on the axes."""
         CURVE_TYPE_3, CURVE_TYPE_4 = 3, 4
         col = []
         edgecolors = []
@@ -304,6 +283,7 @@ class MoleculePlotter(object):
         self.axes.add_collection(self._vib_oop)
 
     def clear(self):
+        """Clear the axes."""
         for artist in self.axes.get_children():
             try:
                 artist.remove()
@@ -314,12 +294,13 @@ class MoleculePlotter(object):
         self._vib_bonds = self._vib_angles = self._vib_oop = None
 
     def set_molecule(self, molecule):
-        """`openbabel.OBMol` molecule with original 3D coordinates."""
+        """Set molecule data for this plot."""
         self.molecule = molecule
         self._molecule2D = self._sdg(molecule)
         self.clear()
 
     def set_vibration_data(self, vib_data):
+        """Set vibration data for this plot."""
         self._vib_data = vib_data
         # profiling shows performance increase:
         self._vib_data_lx = np.array(
@@ -328,6 +309,7 @@ class MoleculePlotter(object):
         self._vib_data_lx *= 0.529177249  # to angstroem
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
+        """Draw molecule on the axes."""
         for artist in chain((self._mol_atoms, self._mol_bonds),
                             self._mol_labels):
             if artist:
@@ -341,6 +323,7 @@ class MoleculePlotter(object):
         self.draw()
 
     def draw_vibration(self, row, bl_filter, angle_filter, torsion_filter):
+        """Draw vibration on the axes."""
         for artist in (self._vib_bonds, self._vib_angles, self._vib_oop):
             if artist:
                 artist.remove()
@@ -351,33 +334,34 @@ class MoleculePlotter(object):
         self.draw()
 
     def show_atom_index(self, show=True):
+        """Show or hide atom indexes."""
         for artist in self._mol_labels:
             artist.show_index(show)
         self.draw()
 
     def set_black_labels(self, black=True):
+        """Colored or black atom labels"""
         for artist in self._mol_labels:
             artist.set_black_labels(black)
         self.draw()
 
     def set_fontsize(self, fontsize):
+        """Set the font size for the atom labels."""
         for artist in self._mol_labels:
             artist.set_fontsize(fontsize)
         self.draw()
 
     def set_linewidth(self, linewidth):
+        """Set the linewidth used for the skeleton."""
         self._mol_bonds.set_linewidth(float(linewidth))
         self.draw()
 
 
 class SpectrumPlotter(object):
-    """Use :mod:`matplotlib` to draw a spectrum as dirac vectors.
+    """Draw spectrum.
 
-    Attributes
-    ----------
-    axes : mpl.Axes
-    function : {None, "lorentzian", "gaussian"}
-        Choose function to broaden the spectrum.
+    Arguments:
+        axes (matplotlib.axes): axes to draw on.
 
     """
     def __init__(self, axes):
@@ -399,11 +383,7 @@ class SpectrumPlotter(object):
         self._spectrum = None
 
     def _add_spectrum_collection(self, **kwargs):
-        """
-        Return :class:`~matplotlib.collections.PathCollection`
-        representing the spectrum.
-
-        """
+        """Draw spectrum on the axes."""
         codes = [Path.MOVETO,
                  Path.LINETO,
                 ]
@@ -423,11 +403,7 @@ class SpectrumPlotter(object):
         self.axes.add_collection(self._spectrum)
 
     def _update_broaden(self, **kwargs):
-        """
-        Return :class:`~matplotlib.lines.Line2D` of the broadened
-        spectrum.
-
-        """
+        """Update broadening line."""
         if self._broadening_function:
             spkx, spky = broaden.broaden(
                 self._vib_data.GetFrequencies(),
@@ -441,21 +417,25 @@ class SpectrumPlotter(object):
             self.broadening.set_visible(False)
 
     def clear(self):
+        """Clear the axes."""
         for collection in self.axes.collections:
             collection.remove()
         self._spectrum = None
 
     def set_vibration_data(self, vib_data):
+        """Set vibration data for this plot."""
         self._vib_data = vib_data
         self.clear()
         self.set_vibration("")
 
     def draw_spectrum(self):
+        """Draw spectrum on the axes."""
         self._add_spectrum_collection(color="0.30")
         self._update_broaden()
         self.draw()
 
     def set_vibration(self, freq):
+        """Select vibration at `freq`."""
         try:
             self.needle.set_xdata(float(freq))
         except ValueError:
@@ -466,11 +446,14 @@ class SpectrumPlotter(object):
             self.draw()
 
     def set_fwhm(self, fwhm):
+        """Broaden spectrum with full width at half maximum `fwhm`."""
         self._fwhm = fwhm
         self._update_broaden()
         self.draw()
 
     def set_broadening_function(self, function_name):
+        """Broaden spectrum with a `lorentzian` or a `gaussian` function,
+        or `none`."""
         self._broadening_function = dict(
             lorentzian=broaden.lorentzian,
             gaussian=broaden.gaussian).get(function_name)

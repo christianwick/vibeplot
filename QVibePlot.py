@@ -54,6 +54,8 @@ import vibeplot.plotter as plotter
 
 class QVibeplot(QMainWindow):
 
+    """vibeplot graphical user interface."""
+
     def __init__(self):
         super(QVibeplot, self).__init__()
         uifile = QFile(":/qvibeplot.ui")
@@ -213,6 +215,7 @@ class QVibeplot(QMainWindow):
         ))
 
     def _drawVibration(self):
+        """Pass parameters from GUI to `moleculePlotter.draw_vibration`."""
         self.moleculePlotter.draw_vibration(
             self.frequencyList.currentRow(),
             self.bondlengthFilter.value(),
@@ -220,11 +223,13 @@ class QVibeplot(QMainWindow):
             self.torsionFilter.value())
 
     def setWindowTitle(self, text=""):
+        """Write QVibeplot in the window title."""
         super(QVibeplot, self).setWindowTitle(
             'QVibeplot' if not text else
             '%s - QVibeplot' % os.path.basename(text))
 
     def loadFile(self, filename=None, inFormat=None):
+        """Use Open Babel to load a molecule from a file."""
         if not filename:
             filename = QFileDialog.getOpenFileName(
                 self,
@@ -303,11 +308,13 @@ class QVibeplot(QMainWindow):
         self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
 
     def saveImage(self):
+        """Save the molecule plot to file."""
         if not self._imageFile:
             self.saveImageAs()
         self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
 
     def saveImageAs(self):
+        """Save the molecule plot to file."""
         self._imageFile = QFileDialog.getSaveFileName(
             self,
             u"Save image",
@@ -324,6 +331,7 @@ class QVibeplot(QMainWindow):
         self.saveImage()
 
     def saveSpectrum(self):
+        """Save the broadened spectrum to file."""
         imageFile = QFileInfo(self._settings.value("imageFile"))
         filename = QFileDialog.getSaveFileName(
             self,
