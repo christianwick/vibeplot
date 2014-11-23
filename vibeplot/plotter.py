@@ -422,44 +422,7 @@ class SpectrumPlotter(object):
         self._spectrum = PathCollection(col, **kwargs)
         self.axes.add_collection(self._spectrum)
 
-    def clear(self):
-        for collection in self.axes.collections:
-            collection.remove()
-        self._spectrum = None
-
-    def set_vibration_data(self, vib_data):
-        self._vib_data = vib_data
-        self.clear()
-        self.set_vibration("")
-
-    def draw_spectrum(self):
-        self._add_spectrum_collection(color="0.30")
-        self.update_broaden()
-        self.draw()
-
-    def set_vibration(self, freq):
-        try:
-            self.needle.set_xdata(float(freq))
-        except ValueError:
-            # freq not convertible to float
-            self.needle.set_visible(False)
-        else:
-            self.needle.set_visible(True)
-            self.draw()
-
-    def set_fwhm(self, fwhm):
-        self._fwhm = fwhm
-        self.update_broaden()
-        self.draw()
-
-    def set_broadening_function(self, function_name):
-        self._broadening_function = dict(
-            lorentzian=broaden.lorentzian,
-            gaussian=broaden.gaussian).get(function_name)
-        self.update_broaden()
-        self.draw()
-
-    def update_broaden(self, **kwargs):
+    def _update_broaden(self, **kwargs):
         """
         Return :class:`~matplotlib.lines.Line2D` of the broadened
         spectrum.
@@ -476,6 +439,43 @@ class SpectrumPlotter(object):
             self.broadening.set_visible(True)
         else:
             self.broadening.set_visible(False)
+
+    def clear(self):
+        for collection in self.axes.collections:
+            collection.remove()
+        self._spectrum = None
+
+    def set_vibration_data(self, vib_data):
+        self._vib_data = vib_data
+        self.clear()
+        self.set_vibration("")
+
+    def draw_spectrum(self):
+        self._add_spectrum_collection(color="0.30")
+        self._update_broaden()
+        self.draw()
+
+    def set_vibration(self, freq):
+        try:
+            self.needle.set_xdata(float(freq))
+        except ValueError:
+            # freq not convertible to float
+            self.needle.set_visible(False)
+        else:
+            self.needle.set_visible(True)
+            self.draw()
+
+    def set_fwhm(self, fwhm):
+        self._fwhm = fwhm
+        self._update_broaden()
+        self.draw()
+
+    def set_broadening_function(self, function_name):
+        self._broadening_function = dict(
+            lorentzian=broaden.lorentzian,
+            gaussian=broaden.gaussian).get(function_name)
+        self._update_broaden()
+        self.draw()
 
     def save_spectrum(self, filename):
         """Save broadened spectrum to file."""

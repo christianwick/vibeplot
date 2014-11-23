@@ -103,18 +103,18 @@ class QVibeplot(QMainWindow):
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumCanvas.addAction(
             QAction(u"save spectrum", self.spectrumCanvas,
-                    triggered=self._saveSpectrum))
+                    triggered=self.saveSpectrum))
         # File menu
         self.fileMenu.addActions((
             QAction(u"Open", self.fileMenu,
                     shortcut=QKeySequence.Open,
-                    triggered=self._loadFile),
+                    triggered=self.loadFile),
             QAction(u"Save image", self.fileMenu,
                     shortcut=QKeySequence.Save,
-                    triggered=self._saveImage),
+                    triggered=self.saveImage),
             QAction(u"Save image as...", self.fileMenu,
                     shortcut=QKeySequence.SaveAs,
-                    triggered=self._saveImageAs),
+                    triggered=self.saveImageAs),
             QAction(u"Quit", self.fileMenu,
                     shortcut=QKeySequence.Quit,
                     triggered=self.close),
@@ -124,7 +124,7 @@ class QVibeplot(QMainWindow):
         self.orbiMolDbMenu.addActions([
             QAction(os.path.splitext(os.path.basename(filename))[0],  # text
                     self.orbiMolDbMenu,
-                    triggered=partial(self._loadFile, filename, "g03"))
+                    triggered=partial(self.loadFile, filename, "g03"))
             for filename in glob("data/orbimol/*.freq")])
         self.orbiMolDbMenu.addSeparator()
         self.orbiMolDbMenu.addAction(
@@ -219,7 +219,12 @@ class QVibeplot(QMainWindow):
             self.angleFilter.value(),
             self.torsionFilter.value())
 
-    def _loadFile(self, filename=None, inFormat=None):
+    def setWindowTitle(self, text=""):
+        super(QVibeplot, self).setWindowTitle(
+            'QVibeplot' if not text else
+            '%s - QVibeplot' % os.path.basename(text))
+
+    def loadFile(self, filename=None, inFormat=None):
         if not filename:
             filename = QFileDialog.getOpenFileName(
                 self,
@@ -297,12 +302,12 @@ class QVibeplot(QMainWindow):
         obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
         self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
 
-    def _saveImage(self):
+    def saveImage(self):
         if not self._imageFile:
-            self._saveImageAs()
+            self.saveImageAs()
         self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
 
-    def _saveImageAs(self):
+    def saveImageAs(self):
         self._imageFile = QFileDialog.getSaveFileName(
             self,
             u"Save image",
@@ -316,9 +321,9 @@ class QVibeplot(QMainWindow):
         if "." not in self._imageFile:
             self._imageFile += ".pdf"
         self._settings.setValue("imagePath", os.path.dirname(self._imageFile))
-        self._saveImage()
+        self.saveImage()
 
-    def _saveSpectrum(self):
+    def saveSpectrum(self):
         imageFile = QFileInfo(self._settings.value("imageFile"))
         filename = QFileDialog.getSaveFileName(
             self,
@@ -330,11 +335,6 @@ class QVibeplot(QMainWindow):
         if "." not in filename:
             filename += ".txt"
         self.spectrumPlotter.save_spectrum(filename)
-
-    def setWindowTitle(self, text=""):
-        super(QVibeplot, self).setWindowTitle(
-            'QVibeplot' if not text else
-            '%s - QVibeplot' % os.path.basename(text))
 
 
 def main():
