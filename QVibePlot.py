@@ -18,6 +18,7 @@
 from __future__ import print_function
 import sys
 import os.path
+import platform
 from glob import glob
 from functools import partial
 
@@ -47,21 +48,34 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 
-import openbabel as ob
+if platform.system() == "Windows":
+    from qvibeplot_ui import Ui_MainWindow
+    class MainWindow(QMainWindow, Ui_MainWindow):
 
+        def __init__(self):
+            super(MainWindow, self).__init__()
+            self.setupUi(self)
+
+else:
+    class MainWindow(QMainWindow):
+
+        def __init__(self):
+            super(MainWindow, self).__init__()
+            uifile = QFile(":/qvibeplot.ui")
+            uifile.open(QFile.ReadOnly)
+            uic.loadUi(uifile, self)
+            uifile.close()
+
+import openbabel as ob
 import vibeplot.plotter as plotter
 
 
-class QVibeplot(QMainWindow):
+class QVibeplot(MainWindow):
 
     """vibeplot graphical user interface."""
 
     def __init__(self):
         super(QVibeplot, self).__init__()
-        uifile = QFile(":/qvibeplot.ui")
-        uifile.open(QFile.ReadOnly)
-        uic.loadUi(uifile, self)
-        uifile.close()
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
         self.rightVLayout.insertWidget(
