@@ -1,13 +1,16 @@
+from matplotlib import rcParams
 from matplotlib.figure import Figure
 
 # Import Qt and matplotlib modules
 try:
-    from PyQt4.QtGui import QPalette
-    from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg
+    from PyQt5.QtGui import QPalette
+    rcParams["backend"] = "Qt5Agg"
+    from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
 except ImportError:
-    from PyQt5.QtGui import QPalette
-    from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
+    from PyQt4.QtGui import QPalette
+    rcParams["backend"] = "Qt4Agg"
+    from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
 
 
