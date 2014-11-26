@@ -86,6 +86,9 @@ class QVibeplot(MainWindow):
         palette.setColor(palette.Window, QColor("white"))
         self.svgWidget.setPalette(palette)
 
+        self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
+
         self.moleculePlotter = plotter.MoleculePlotter(
             self.moleculeCanvas.figure.add_subplot(111))
         self.spectrumPlotter = plotter.SpectrumPlotter(
@@ -142,9 +145,7 @@ class QVibeplot(MainWindow):
             u"Show Skeleton", self.viewMenu,
             triggered=self.svgWidget.show)
         # Add actions
-        self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumCanvas.addAction(self.saveSpectrumAction)
-        self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.moleculeCanvas.addActions(
             (self.saveImageAction, self.saveImageAsAction,
              self.showAtomIndexAction, self.showSkeletonAction))
