@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2011, Mathias Laurin
+# Copyright (c) 2011-2014 Mathias Laurin
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -194,10 +194,10 @@ class QVibeplot(MainWindow):
             <p>QVibePlot is written in Python and depends on matplotlib
             for the graphics and numpy for the maths. The GUI is
             written using PyQt4.</p>
-            <p>Copyright (c) 2011-2013
+            <p>Copyright (c) 2011-2014
             <a href="mailto:Mathias.Laurin+vibeplot@gmail.com"> Mathias
             Laurin</a></p>
-            <p>QVibePlot 0.14 is available under the modified BSD
+            <p>QVibePlot %s is available under the modified BSD
             License.</p>
             <p>Support the program by citing: Laurin, M.  QVibeplot: A
             Program To Visualize Molecular Vibrations in Two
@@ -205,7 +205,7 @@ class QVibeplot(MainWindow):
             <a href="http://dx.doi.org/10.1021/ed300554z">DOI:
             10.1021/ed300554z</a>.</p>
 
-            """).splitlines()))),
+            """ % plotter.__version__).splitlines()))),
             QAction(u"About Qt", self.helpMenu,
                     triggered=partial(QMessageBox.aboutQt, self)),
             QAction(u"About Open Babel", self.helpMenu,

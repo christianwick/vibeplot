@@ -11,6 +11,7 @@ import glob
 from distutils.core import setup
 import platform
 import matplotlib
+from vibeplot import __version__
 
 if platform.system() == "Windows":
     import py2exe
@@ -76,7 +77,7 @@ data_files.append(
 
 setup(
     name="QVibePlot",
-    version="0.14.2",
+    version=__version__,
     author="Mathias Laurin",
     author_email="Mathias.Laurin+vibeplot@gmail.com",
     url="http://vibeplot.sf.net",
@@ -85,7 +86,7 @@ setup(
     #package_dir={'vibeplot': 'src'},
     #package_data=package_data,
     data_files=data_files,
-    requires="maplotlib (>=1.1);numpy;sip;PyQt4;openbabel".split(";"),
+    requires="maplotlib (>=1.4);numpy;sip;PyQt4;openbabel".split(";"),
     scripts=["QVibePlot.py"],
     windows=[dict(script="QVibePlot.py")],
     zipfile=None,
