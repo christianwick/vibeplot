@@ -116,27 +116,43 @@ class QVibeplot(MainWindow):
             self.spectrumPlotter.set_vibration)
         self.frequencyList.currentRowChanged.connect(self._drawVibration)
         # Create actions
+        self.saveSpectrumAction = QAction(
+            u"Save Spectrum...", self.spectrumCanvas,
+            triggered=self.saveSpectrum)
+        self.openFileAction = QAction(
+            u"Open", self.fileMenu,
+            shortcut=QKeySequence.Open,
+            triggered=self.loadFile)
+        self.saveImageAction = QAction(
+            u"Save Image", self.fileMenu,
+            shortcut=QKeySequence.Save,
+            triggered=self.saveImage)
+        self.saveImageAsAction = QAction(
+            u"Save Image As...", self.fileMenu,
+            shortcut=QKeySequence.SaveAs,
+            triggered=self.saveImageAs)
+        self.quitAction = QAction(
+            u"Quit", self.fileMenu,
+            shortcut=QKeySequence.Quit,
+            triggered=self.close)
+        self.showAtomIndexAction = QAction(
+            u"Atom Index", self.viewMenu, checkable=True,
+            triggered=self.moleculePlotter.show_atom_index)
+        self.showSkeletonAction = QAction(
+            u"Show Skeleton", self.viewMenu,
+            triggered=self.svgWidget.show)
+        # Add actions
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
-        self.spectrumCanvas.addAction(
-            QAction(u"save spectrum", self.spectrumCanvas,
-                    triggered=self.saveSpectrum))
+        self.spectrumCanvas.addAction(self.saveSpectrumAction)
+        self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.moleculeCanvas.addActions(
+            (self.saveImageAction, self.saveImageAsAction,
+             self.showAtomIndexAction, self.showSkeletonAction))
         # File menu
-        self.fileMenu.addActions((
-            QAction(u"Open", self.fileMenu,
-                    shortcut=QKeySequence.Open,
-                    triggered=self.loadFile),
-            QAction(u"Save image", self.fileMenu,
-                    shortcut=QKeySequence.Save,
-                    triggered=self.saveImage),
-            QAction(u"Save image as...", self.fileMenu,
-                    shortcut=QKeySequence.SaveAs,
-                    triggered=self.saveImageAs),
-            QAction(u"Quit", self.fileMenu,
-                    shortcut=QKeySequence.Quit,
-                    triggered=self.close),
-        ))
+        self.fileMenu.addActions((self.openFileAction, self.saveImageAction,
+                                  self.saveImageAsAction, self.quitAction))
         # File > OrbiMol menu
-        self.orbiMolDbMenu = QMenu(u"OrbiMol DB molecules")
+        self.orbiMolDbMenu = QMenu(u"OrbiMol DB Molecules")
         self.orbiMolDbMenu.addActions([
             QAction(os.path.splitext(os.path.basename(filename))[0],  # text
                     self.orbiMolDbMenu,
@@ -163,12 +179,8 @@ class QVibeplot(MainWindow):
         self.fileMenu.addSeparator()
         self.fileMenu.addMenu(self.orbiMolDbMenu)
         # View menu
-        self.viewMenu.addActions((
-            QAction(u"Atom index", self.viewMenu, checkable=True,
-                    triggered=self.moleculePlotter.show_atom_index),
-            QAction(u"Show skeleton", self.viewMenu,
-                    triggered=self.svgWidget.show),
-        ))
+        self.viewMenu.addActions((self.showAtomIndexAction,
+                                  self.showSkeletonAction))
         # Help menu
         self.helpMenu.addActions((
             QAction(u"About", self.helpMenu, triggered=partial(
@@ -195,7 +207,7 @@ class QVibeplot(MainWindow):
             """).splitlines()))),
             QAction(u"About Qt", self.helpMenu,
                     triggered=partial(QMessageBox.aboutQt, self)),
-            QAction(u"About Open Babal", self.helpMenu,
+            QAction(u"About Open Babel", self.helpMenu,
                     triggered=partial(QMessageBox.about, self,
                                       u"About Open Babel", " ".join((
             u"""
@@ -247,7 +259,7 @@ class QVibeplot(MainWindow):
         if not filename:
             filename = QFileDialog.getOpenFileName(
                 self,
-                u"Open file",
+                u"Open File",
                 self._settings.value("dataPath"),
                 ";;".join((
                     " ".join(("Common formats (",
@@ -331,7 +343,7 @@ class QVibeplot(MainWindow):
         """Save the molecule plot to file."""
         self._imageFile = QFileDialog.getSaveFileName(
             self,
-            u"Save image",
+            u"Save Image",
             self._settings.value("imagePath"),
             ";;".join(("pdf files (*.pdf)",
                        "raster images (*.png *.jpeg *.tiff)",
@@ -349,7 +361,7 @@ class QVibeplot(MainWindow):
         imageFile = QFileInfo(self._settings.value("imageFile"))
         filename = QFileDialog.getSaveFileName(
             self,
-            u"Save spectrum values",
+            u"Save Spectrum Values",
             imageFile.path() \
                     if imageFile.isFile() else imageFile.filePath(),
             "plain text (*.txt)")
