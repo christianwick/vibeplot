@@ -19,6 +19,18 @@
      <layout class="QVBoxLayout" name="leftVLayout">
       <item>
        <widget class="QGroupBox" name="moleculeGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="title">
          <string>Molecule</string>
         </property>
@@ -160,6 +172,18 @@
       </item>
       <item>
        <widget class="QGroupBox" name="vibrationGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="title">
          <string>Vibration filter</string>
         </property>
@@ -247,6 +271,18 @@
       </item>
       <item>
        <widget class="QGroupBox" name="spectrumGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="title">
          <string>Spectrum broadening</string>
         </property>
@@ -263,6 +299,9 @@
          </item>
          <item row="0" column="1">
           <widget class="QComboBox" name="broadeningComboBox">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
            <item>
             <property name="text">
              <string>none</string>
@@ -308,6 +347,18 @@
       </item>
       <item>
        <widget class="QListWidget" name="frequencyList">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="sortingEnabled">
          <bool>true</bool>
         </property>
