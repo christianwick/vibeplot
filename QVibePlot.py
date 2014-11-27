@@ -67,6 +67,7 @@ else:
             uifile.close()
 
 import openbabel as ob
+from vibeplot import __version__
 import vibeplot.plotter as plotter
 
 
@@ -205,7 +206,7 @@ class QVibeplot(MainWindow):
             <a href="http://dx.doi.org/10.1021/ed300554z">DOI:
             10.1021/ed300554z</a>.</p>
 
-            """ % plotter.__version__).splitlines()))),
+            """ % __version__).splitlines()))),
             QAction(u"About Qt", self.helpMenu,
                     triggered=partial(QMessageBox.aboutQt, self)),
             QAction(u"About Open Babel", self.helpMenu,
