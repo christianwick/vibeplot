@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>757</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>QVibeplot</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <layout class="QVBoxLayout" name="leftVLayout">
+      <item>
+       <widget class="QGroupBox" name="moleculeGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="title">
+         <string>Molecule</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_3">
+         <property name="fieldGrowthPolicy">
+          <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="fontSizeLabel">
+           <property name="text">
+            <string>Font Size</string>
+           </property>
+           <property name="buddy">
+            <cstring>fontSizeComboBox</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="fontSizeComboBox">
+           <property name="currentIndex">
+            <number>3</number>
+           </property>
+           <item>
+            <property name="text">
+             <string notr="true">6</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">8</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">10</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">12</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">14</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">18</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">20</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">24</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string notr="true">32</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lineWidthLabel">
+           <property name="text">
+            <string>Linewidth</string>
+           </property>
+           <property name="buddy">
+            <cstring>lineWidthComboBox</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="lineWidthComboBox">
+           <property name="currentIndex">
+            <number>3</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>0.0</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>0.5</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>1.0</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2.0</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4.0</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="colorLabelLabel">
+           <property name="text">
+            <string>Black Labels</string>
+           </property>
+           <property name="buddy">
+            <cstring>colorLabelCheckBox</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QCheckBox" name="colorLabelCheckBox">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="vibrationGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="title">
+         <string>Vibration filter</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_2">
+         <item row="0" column="0">
+          <widget class="QLabel" name="bondlengthFilterLabel">
+           <property name="text">
+            <string>Bondlength</string>
+           </property>
+           <property name="buddy">
+            <cstring>bondlengthFilter</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="bondlengthFilter">
+           <property name="suffix">
+            <string notr="true"> pm</string>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="singleStep">
+            <number>5</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="angleFilterLabel">
+           <property name="text">
+            <string>Angle</string>
+           </property>
+           <property name="buddy">
+            <cstring>angleFilter</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="angleFilter">
+           <property name="suffix">
+            <string>º</string>
+           </property>
+           <property name="maximum">
+            <number>90</number>
+           </property>
+           <property name="singleStep">
+            <number>5</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="torsionFilterLabel">
+           <property name="text">
+            <string>Torsion</string>
+           </property>
+           <property name="buddy">
+            <cstring>torsionFilter</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QSpinBox" name="torsionFilter">
+           <property name="suffix">
+            <string>º</string>
+           </property>
+           <property name="maximum">
+            <number>180</number>
+           </property>
+           <property name="singleStep">
+            <number>10</number>
+           </property>
+           <property name="value">
+            <number>0</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="spectrumGB">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="title">
+         <string>Spectrum broadening</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="broadeningLabel">
+           <property name="text">
+            <string>Function</string>
+           </property>
+           <property name="buddy">
+            <cstring>broadeningComboBox</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QComboBox" name="broadeningComboBox">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>none</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>lorentzian</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>gaussian</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="fwhmLabel">
+           <property name="text">
+            <string>FWHM</string>
+           </property>
+           <property name="buddy">
+            <cstring>fwhmDoubleSpinBox</cstring>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QDoubleSpinBox" name="fwhmDoubleSpinBox">
+           <property name="decimals">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <double>40.000000000000000</double>
+           </property>
+           <property name="value">
+            <double>8.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QListWidget" name="frequencyList">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>250</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="sortingEnabled">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QVBoxLayout" name="rightVLayout">
+      <item>
+       <widget class="MplCanvas" name="moleculeCanvas" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>200</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="MplCanvas" name="spectrumCanvas" native="true"/>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>757</width>
+     <height>19</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="fileMenu">
+    <property name="title">
+     <string>File</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="viewMenu">
+    <property name="title">
+     <string>View</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="helpMenu">
+    <property name="title">
+     <string>Help</string>
+    </property>
+   </widget>
+   <addaction name="fileMenu"/>
+   <addaction name="viewMenu"/>
+   <addaction name="helpMenu"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="openAction">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="saveImageAction">
+   <property name="text">
+    <string>Save image</string>
+   </property>
+  </action>
+  <action name="saveImageAsAction">
+   <property name="text">
+    <string>Save image as...</string>
+   </property>
+  </action>
+  <action name="aboutOrbiMolAction">
+   <property name="text">
+    <string>About OrbiMol...</string>
+   </property>
+  </action>
+  <action name="quitAction">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+  </action>
+  <action name="showIndexAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show index</string>
+   </property>
+  </action>
+  <action name="showSkeletonAction">
+   <property name="text">
+    <string>Show skeleton</string>
+   </property>
+  </action>
+  <action name="aboutOpenBabelAction">
+   <property name="text">
+    <string>About Open Babel</string>
+   </property>
+  </action>
+  <action name="aboutAction">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+  <action name="aboutMplAction">
+   <property name="text">
+    <string>About Matplotlib</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MplCanvas</class>
+   <extends>QWidget</extends>
+   <header>mpl_canvas</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

@@ -6,4 +6,4 @@ Misc utilities.
 
 """
 
-from plane import Plane
+from .plane import Plane

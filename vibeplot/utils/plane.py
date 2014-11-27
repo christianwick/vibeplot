@@ -15,7 +15,7 @@
 
 import numpy as np
 import math
-import vecalgebra as vec
+from .vecalgebra import normalize
 
 
 class Plane:
@@ -25,7 +25,7 @@ class Plane:
 
     def _calculate_normal(self, coord1, coord2, coord3):
         """ return Hessian normal and distance from origin """
-        n = vec.normalize(np.cross(coord2 - coord1, coord3 - coord1))
+        n = normalize(np.cross(coord2 - coord1, coord3 - coord1))
         d = -np.sum(n * coord1)
         return n, d
 
