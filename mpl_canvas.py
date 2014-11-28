@@ -29,6 +29,3 @@ class MplCanvas(FigureCanvas):
                                                    color.green(),
                                                    color.blue()))
 
-    def draw(self):
-        super(MplCanvas, self).draw()
-
