@@ -27,7 +27,7 @@ for qtype in "QString QTextStream QVariant".split():
     sip.setapi(qtype, 2)
 
 # Import Qt and matplotlib modules
-import matplotlib as mpl
+import matplotlib
 try:
     from PyQt5.QtWidgets import *
     from PyQt5.QtGui import QPalette, QColor, QKeySequence
@@ -35,7 +35,7 @@ try:
     from PyQt5.QtSvg import QSvgWidget
     from PyQt5 import uic
     import rcc5
-    mpl.rcParams["backend"] = "Qt5Agg"
+    matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 except ImportError:
@@ -44,7 +44,7 @@ except ImportError:
     from PyQt4.QtSvg import QSvgWidget
     from PyQt4 import uic
     import rcc4
-    mpl.rcParams["backend"] = "Qt4Agg"
+    matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 
@@ -239,7 +239,7 @@ class QVibeplot(MainWindow):
             <P>See <a href="http://matplotlib.org">matplotlib.org</a>
             for more information.</P>
 
-            """.format(mpl.__version__)).splitlines())))
+            """.format(matplotlib.__version__)).splitlines())))
         ))
 
     def _drawVibration(self):
