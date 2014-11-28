@@ -130,11 +130,7 @@ class QVibeplot(MainWindow):
         self.saveImageAction = QAction(
             u"Save Image", self.fileMenu,
             shortcut=QKeySequence.Save,
-            triggered=self.saveImage)
-        self.saveImageAsAction = QAction(
-            u"Save Image As...", self.fileMenu,
-            shortcut=QKeySequence.SaveAs,
-            triggered=self.saveImageAs)
+            triggered=self.toolbar.save_figure)
         self.quitAction = QAction(
             u"Quit", self.fileMenu,
             shortcut=QKeySequence.Quit,
@@ -148,11 +144,11 @@ class QVibeplot(MainWindow):
         # Add actions
         self.spectrumCanvas.addAction(self.saveSpectrumAction)
         self.moleculeCanvas.addActions(
-            (self.saveImageAction, self.saveImageAsAction,
-             self.showAtomIndexAction, self.showSkeletonAction))
+            (self.saveImageAction, self.showAtomIndexAction,
+             self.showSkeletonAction))
         # File menu
         self.fileMenu.addActions((self.openFileAction, self.saveImageAction,
-                                  self.saveImageAsAction, self.quitAction))
+                                  self.quitAction))
         # File > OrbiMol menu
         self.orbiMolDbMenu = QMenu(u"OrbiMol DB Molecules")
         self.orbiMolDbMenu.addActions([
@@ -334,29 +330,6 @@ class QVibeplot(MainWindow):
         obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
         obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
         self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
-
-    def saveImage(self):
-        """Save the molecule plot to file."""
-        if not self._imageFile:
-            self.saveImageAs()
-        self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
-
-    def saveImageAs(self):
-        """Save the molecule plot to file."""
-        self._imageFile = QFileDialog.getSaveFileName(
-            self,
-            u"Save Image",
-            self._settings.value("imagePath"),
-            ";;".join(("pdf files (*.pdf)",
-                       "raster images (*.png *.jpeg *.tiff)",
-                       "vector images (*.pdf *.eps *.ps)",
-                       "all files (*)",)))
-        if not self._imageFile:
-            return
-        if "." not in self._imageFile:
-            self._imageFile += ".pdf"
-        self._settings.setValue("imagePath", os.path.dirname(self._imageFile))
-        self.saveImage()
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
