@@ -333,14 +333,16 @@ class QVibeplot(MainWindow):
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
-        imageFile = QFileInfo(self._settings.value("imageFile"))
+        imagePath = self._settings.value("imagePath")
         filename = QFileDialog.getSaveFileName(
             self,
             u"Save Spectrum Values",
-            imageFile.path() \
-                    if imageFile.isFile() else imageFile.filePath(),
+            imagePath,
             "plain text (*.txt)")
-        if not filename: return
+        if not isinstance(filename, unicode):
+            filename = filename.pop()
+        if not filename:
+            return
         if "." not in filename:
             filename += ".txt"
         self.spectrumPlotter.save_spectrum(filename)
