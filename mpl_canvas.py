@@ -3,12 +3,13 @@ from matplotlib.figure import Figure
 
 # Import Qt and matplotlib modules
 try:
+    from PyQt5.QtWidgets import QSizePolicy
     from PyQt5.QtGui import QPalette
     matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
 except ImportError:
-    from PyQt4.QtGui import QPalette
+    from PyQt4.QtGui import QPalette, QSizePolicy
     matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
@@ -20,6 +21,8 @@ class MplCanvas(FigureCanvas):
         fig = Figure()
         super(MplCanvas, self).__init__(fig)
         self.setParent(parent)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.updateGeometry()
 
     def setParent(self, parent):
         super(MplCanvas, self).setParent(parent)
