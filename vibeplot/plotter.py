@@ -306,6 +306,10 @@ class MoleculePlotter(object):
             [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
              for row in vib_data.GetLx()], dtype=float)
         self.lx *= 0.529177249  # to angstroem
+        if self.frequencies[-1] < self.frequencies[0]:
+            self.frequencies = self.frequencies[::-1]
+            self.lx = self.lx[::-1]
+            assert(all(self.frequencies == sorted(self.frequencies)))
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         """Draw molecule on the axes."""
