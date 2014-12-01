@@ -104,7 +104,6 @@ class QVibeplot(MainWindow):
         for setting in "imagePath dataPath".split():
             if not self._settings.contains(setting):
                 self._settings.setValue(setting, QDir.homePath())
-        self._imageFile = None
 
         # Connect widgets
         self.fontSizeComboBox.currentIndexChanged[str].connect(
@@ -325,9 +324,6 @@ class QVibeplot(MainWindow):
         )
         self.spectrumPlotter.set_vibration_data(vibData)
         self.spectrumPlotter.draw_spectrum()
-
-        # reset
-        self._imageFile = None
 
         # populate frequencyList
         self.frequencyList.clear()
