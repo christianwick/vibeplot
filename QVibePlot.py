@@ -9,6 +9,7 @@ import os.path
 import platform
 from glob import glob
 from functools import partial
+from collections import defaultdict
 
 import sip
 for qtype in "QString QTextStream QVariant".split():
@@ -57,6 +58,22 @@ else:
 import openbabel as ob
 from vibeplot import __version__
 import vibeplot.plotter as plotter
+
+
+FORMATS = [
+    "ACES output format",
+    "Crystal 09 output format",
+    "GAMESS Output",
+    "GAMESS-UK Output",
+    "Gaussian Output",
+    "Molden format",
+    "Molpro output format",
+    "MOPAC Output format",
+    "NWChem output format",
+    "Orca output format",
+    "Q-Chem output format",
+    "VASP format",
+]
 
 
 class QVibeplot(MainWindow):
@@ -243,23 +260,34 @@ class QVibeplot(MainWindow):
     def loadFile(self, filename=None, inFormat=None):
         """Use Open Babel to load a molecule from a file."""
         if not filename:
+            obFormats = (format.split(" -- ") for format
+                         in ob.OBConversion().GetSupportedInputFormat())
+            formats = defaultdict(str)
+            for (fmt, ext) in ((fmt, ext) for (ext, fmt) in obFormats
+                               if fmt in FORMATS):
+                formats[fmt] += (" *.%s"
+                                 if ext not in "CONTCAR POSCAR".split()
+                                 else " %s") % ext
+            try:
+                # py2
+                # Strip first blank in extension list
+                _formats = {fmt: ext[1:] for (fmt, ext)
+                            in formats.iteritems()}
+                formats, extensions = _formats.iteritems, _formats.itervalues
+            except AttributeError:
+                # py3
+                _formats = {fmt: ext[1:] for (fmt, ext)
+                            in formats.items()}
+                formats, extensions = _formats.items, _formats.values
             filename = QFileDialog.getOpenFileName(
                 self,
                 u"Open File",
                 self._settings.value("dataPath"),
-                ";;".join((
-                    " ".join(("Common formats (",
-                              "*.moldem *.mold *.molf",
-                              "*.gal *.g92 *.g94 *.g98 *.g03 *.g09",
-                              "*.acesout *.gukout *.nwo",
-                              "CONTCAR POSCAR *.vasp", ")")),
-                    "molden (*.molden *.mold *.molf)",
-                    "Gaussian (*.gal *.g92 *.g94 *.g98 *.g03 *.g09)",
-                    "ACES output (*.acesout)",
-                    "GAMESS-UK (*.gukout)",
-                    "NWChem output (*.nwo)",
-                    "VASP (CONTCAR POSCAR *.vasp)",
-                    "all files (*)")))
+                ";;".join(
+                    ["Common formats (%s)" % " ".join(extensions())] +
+                    ["%s (%s)" % __ for __ in sorted(formats())] +
+                    ["all files (*)"]
+                ))
         try:
             filename, __ = filename  # PyQt5
         except ValueError:
