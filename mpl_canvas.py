@@ -1,15 +1,16 @@
-from matplotlib import rcParams
+import matplotlib
 from matplotlib.figure import Figure
 
 # Import Qt and matplotlib modules
 try:
+    from PyQt5.QtWidgets import QSizePolicy
     from PyQt5.QtGui import QPalette
-    rcParams["backend"] = "Qt5Agg"
+    matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
 except ImportError:
-    from PyQt4.QtGui import QPalette
-    rcParams["backend"] = "Qt4Agg"
+    from PyQt4.QtGui import QPalette, QSizePolicy
+    matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (FigureCanvasQTAgg
                                                     as FigureCanvas)
 
@@ -20,6 +21,8 @@ class MplCanvas(FigureCanvas):
         fig = Figure()
         super(MplCanvas, self).__init__(fig)
         self.setParent(parent)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.updateGeometry()
 
     def setParent(self, parent):
         super(MplCanvas, self).setParent(parent)
@@ -28,7 +31,4 @@ class MplCanvas(FigureCanvas):
             self.figure.set_facecolor("#%X%X%X" % (color.red(),
                                                    color.green(),
                                                    color.blue()))
-
-    def draw(self):
-        super(MplCanvas, self).draw()
 

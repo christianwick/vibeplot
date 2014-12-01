@@ -40,12 +40,14 @@ if platform.system() == "Windows":
     data_files = matplotlib.get_py2exe_datafiles()
 
     # Open Babel
-    ob_libdir = os.environ.get("BABEL_LIBDIR", "../ob-build/bin")  # plugins
+    ob_libdir = os.environ.get("BABEL_LIBDIR",
+                               os.path.join("..", "ob-build-shared", "bin"))
     plugins = [
         os.path.join(ob_libdir, plugin + ".obf")
         for plugin in  # selected plugins for openbabel
         """
         APIInterface
+        smilesformat svgformat
         acesformat crystal09format gamessformat gamessukformat
         gaussformat moldenformat molproformat mopacformat
         nwchemformat orcaformat qchemformat vaspformat cmlformat
@@ -55,7 +57,8 @@ if platform.system() == "Windows":
         os.path.join(ob_libdir, dll + ".dll")
         for dll in  # supporting dlls for openbabel
         "iconv libinchi libxml2 xdr-o".split()]
-    data_files.append((".", [plugin for plugin in plugins if isfile(plugin)]))
+    data_files.append(("ob-plugins",
+                       [plugin for plugin in plugins if isfile(plugin)]))
     data_files.append((".", [dll for dll in dlls if isfile(dll)]))
 
     # PyQt5

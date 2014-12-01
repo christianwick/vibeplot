@@ -1,17 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2011-2014 Mathias Laurin
-#
-# Permission to use, copy, modify, and/or distribute this software for any
-# purpose with or without fee is hereby granted, provided that the above
-# copyright notice and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# Copyright (c) 2011-2014 Mathias Laurin, 3-clause BSD License
 
 """Qt graphical user interface (GUI) to vibeplot."""
 
@@ -27,7 +15,7 @@ for qtype in "QString QTextStream QVariant".split():
     sip.setapi(qtype, 2)
 
 # Import Qt and matplotlib modules
-import matplotlib as mpl
+import matplotlib
 try:
     from PyQt5.QtWidgets import *
     from PyQt5.QtGui import QPalette, QColor, QKeySequence
@@ -35,7 +23,7 @@ try:
     from PyQt5.QtSvg import QSvgWidget
     from PyQt5 import uic
     import rcc5
-    mpl.rcParams["backend"] = "Qt5Agg"
+    matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 except ImportError:
@@ -44,7 +32,7 @@ except ImportError:
     from PyQt4.QtSvg import QSvgWidget
     from PyQt4 import uic
     import rcc4
-    mpl.rcParams["backend"] = "Qt4Agg"
+    matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
 
@@ -130,11 +118,7 @@ class QVibeplot(MainWindow):
         self.saveImageAction = QAction(
             u"Save Image", self.fileMenu,
             shortcut=QKeySequence.Save,
-            triggered=self.saveImage)
-        self.saveImageAsAction = QAction(
-            u"Save Image As...", self.fileMenu,
-            shortcut=QKeySequence.SaveAs,
-            triggered=self.saveImageAs)
+            triggered=self.toolbar.save_figure)
         self.quitAction = QAction(
             u"Quit", self.fileMenu,
             shortcut=QKeySequence.Quit,
@@ -148,11 +132,11 @@ class QVibeplot(MainWindow):
         # Add actions
         self.spectrumCanvas.addAction(self.saveSpectrumAction)
         self.moleculeCanvas.addActions(
-            (self.saveImageAction, self.saveImageAsAction,
-             self.showAtomIndexAction, self.showSkeletonAction))
+            (self.saveImageAction, self.showAtomIndexAction,
+             self.showSkeletonAction))
         # File menu
         self.fileMenu.addActions((self.openFileAction, self.saveImageAction,
-                                  self.saveImageAsAction, self.quitAction))
+                                  self.quitAction))
         # File > OrbiMol menu
         self.orbiMolDbMenu = QMenu(u"OrbiMol DB Molecules")
         self.orbiMolDbMenu.addActions([
@@ -239,7 +223,7 @@ class QVibeplot(MainWindow):
             <P>See <a href="http://matplotlib.org">matplotlib.org</a>
             for more information.</P>
 
-            """.format(mpl.__version__)).splitlines())))
+            """.format(matplotlib.__version__)).splitlines())))
         ))
 
     def _drawVibration(self):
@@ -335,39 +319,18 @@ class QVibeplot(MainWindow):
         obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
         self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
 
-    def saveImage(self):
-        """Save the molecule plot to file."""
-        if not self._imageFile:
-            self.saveImageAs()
-        self.moleculePlotter.axes.figure.savefig(self._imageFile, dpi=300)
-
-    def saveImageAs(self):
-        """Save the molecule plot to file."""
-        self._imageFile = QFileDialog.getSaveFileName(
-            self,
-            u"Save Image",
-            self._settings.value("imagePath"),
-            ";;".join(("pdf files (*.pdf)",
-                       "raster images (*.png *.jpeg *.tiff)",
-                       "vector images (*.pdf *.eps *.ps)",
-                       "all files (*)",)))
-        if not self._imageFile:
-            return
-        if "." not in self._imageFile:
-            self._imageFile += ".pdf"
-        self._settings.setValue("imagePath", os.path.dirname(self._imageFile))
-        self.saveImage()
-
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
-        imageFile = QFileInfo(self._settings.value("imageFile"))
+        imagePath = self._settings.value("imagePath")
         filename = QFileDialog.getSaveFileName(
             self,
             u"Save Spectrum Values",
-            imageFile.path() \
-                    if imageFile.isFile() else imageFile.filePath(),
+            imagePath,
             "plain text (*.txt)")
-        if not filename: return
+        if not isinstance(filename, unicode):
+            filename = filename.pop()
+        if not filename:
+            return
         if "." not in filename:
             filename += ".txt"
         self.spectrumPlotter.save_spectrum(filename)
