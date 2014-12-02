@@ -86,8 +86,8 @@ class MoleculePlotter(object):
         self.oop_colors = ("g", "y")
         self.molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
-        self._vib_data = ob.OBVibrationData()
-        self._vib_data_lx = []
+        self.lx = []
+        self.frequencies = []
         self._mol_bonds = None
         self._mol_atoms = None
         self._mol_labels = []
@@ -113,7 +113,7 @@ class MoleculePlotter(object):
 
         atomnc = ob.OBAtom()
         atomnc.Duplicate(atom)
-        nc = ar(atom) + self._vib_data_lx[index][atom.GetIdx() - 1]
+        nc = ar(atom) + self.lx[index][atom.GetIdx() - 1]
         atomnc.SetVector(*nc)
         return atomnc
 
@@ -301,12 +301,15 @@ class MoleculePlotter(object):
 
     def set_vibration_data(self, vib_data):
         """Set vibration data for this plot."""
-        self._vib_data = vib_data
-        # profiling shows performance increase:
-        self._vib_data_lx = np.array(
+        self.frequencies = np.array(vib_data.GetFrequencies())
+        self.lx = np.array(
             [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
              for row in vib_data.GetLx()], dtype=float)
-        self._vib_data_lx *= 0.529177249  # to angstroem
+        self.lx *= 0.529177249  # to angstroem
+        if self.frequencies[-1] < self.frequencies[0]:
+            self.frequencies = self.frequencies[::-1]
+            self.lx = self.lx[::-1]
+            assert(all(self.frequencies == sorted(self.frequencies)))
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         """Draw molecule on the axes."""
@@ -379,7 +382,8 @@ class SpectrumPlotter(object):
         self.axes.add_line(self.broadening)
         self._broadening_function = None
         self._fwhm = 8.0
-        self._vib_data = ob.OBVibrationData()
+        self.frequencies = []
+        self.intensities = []
         self._spectrum = None
 
     def _add_spectrum_collection(self, **kwargs):
@@ -388,13 +392,7 @@ class SpectrumPlotter(object):
                  Path.LINETO,
                 ]
         col = []
-        frequencies = self._vib_data.GetFrequencies()
-        intensities = np.array(self._vib_data.GetIntensities())
-        if intensities.any():
-            intensities /= intensities.max()
-        if len(intensities) != len(frequencies):
-            intensities = [1.0] * len(frequencies)
-        for frequency, intensity in zip(frequencies, intensities):
+        for frequency, intensity in zip(self.frequencies, self.intensities):
             verts = [(frequency, 0.0), (frequency, intensity)]
             col.append(Path(verts, codes))
         kw = {}
@@ -406,8 +404,7 @@ class SpectrumPlotter(object):
         """Update broadening line."""
         if self._broadening_function:
             spkx, spky = broaden.broaden(
-                self._vib_data.GetFrequencies(),
-                self._vib_data.GetIntensities(),
+                self.frequencies, self.intensities,
                 width=self._fwhm, xmin=0.0, xmax=4000.0,
                 fun=self._broadening_function)
             self.broadening.set_data(spkx, spky/spky.max()
@@ -424,7 +421,12 @@ class SpectrumPlotter(object):
 
     def set_vibration_data(self, vib_data):
         """Set vibration data for this plot."""
-        self._vib_data = vib_data
+        self.frequencies = np.array(vib_data.GetFrequencies())
+        self.intensities = np.array(vib_data.GetIntensities())
+        if self.intensities.any():  # max != zero
+            self.intensities /= self.intensities.max()
+        if not self.intensities.size:
+            self.intensities = np.ones_like(self.frequencies)
         self.clear()
         self.set_vibration("")
 
