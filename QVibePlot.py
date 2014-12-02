@@ -250,6 +250,41 @@ class QVibeplot(MainWindow):
             self.angleFilter.value(),
             self.torsionFilter.value())
 
+    def _getFilename(self):
+        obFormats = (format.split(" -- ") for format
+                     in ob.OBConversion().GetSupportedInputFormat())
+        formats = defaultdict(str)
+        for (fmt, ext) in ((fmt, ext) for (ext, fmt) in obFormats
+                           if fmt in FORMATS):
+            formats[fmt] += (" *.%s" if ext not in "CONTCAR POSCAR".split()
+                             else " %s") % ext
+        try:
+            # py2
+            # Strip first blank in extension list
+            _formats = {fmt: ext[1:] for (fmt, ext)
+                        in formats.iteritems()}
+            formats, extensions = _formats.iteritems, _formats.itervalues
+        except AttributeError:
+            # py3
+            _formats = {fmt: ext[1:] for (fmt, ext)
+                        in formats.items()}
+            formats, extensions = _formats.items, _formats.values
+
+        filename = QFileDialog.getOpenFileName(
+            self,
+            u"Open File",
+            self._settings.value("dataPath"),
+            ";;".join(
+                ["Common formats (%s)" % " ".join(extensions())] +
+                ["%s (%s)" % __ for __ in sorted(formats())] +
+                ["all files (*)"]
+            ))
+        try:
+            filename, __ = filename  # PyQt5
+        except ValueError:
+            pass  # PyQt4
+        return filename
+
     def setWindowTitle(self, text=""):
         """Write QVibeplot in the window title."""
         super(QVibeplot, self).setWindowTitle(
@@ -258,39 +293,7 @@ class QVibeplot(MainWindow):
 
     def loadFile(self, filename=None, inFormat=None):
         """Use Open Babel to load a molecule from a file."""
-        if not filename:
-            obFormats = (format.split(" -- ") for format
-                         in ob.OBConversion().GetSupportedInputFormat())
-            formats = defaultdict(str)
-            for (fmt, ext) in ((fmt, ext) for (ext, fmt) in obFormats
-                               if fmt in FORMATS):
-                formats[fmt] += (" *.%s"
-                                 if ext not in "CONTCAR POSCAR".split()
-                                 else " %s") % ext
-            try:
-                # py2
-                # Strip first blank in extension list
-                _formats = {fmt: ext[1:] for (fmt, ext)
-                            in formats.iteritems()}
-                formats, extensions = _formats.iteritems, _formats.itervalues
-            except AttributeError:
-                # py3
-                _formats = {fmt: ext[1:] for (fmt, ext)
-                            in formats.items()}
-                formats, extensions = _formats.items, _formats.values
-            filename = QFileDialog.getOpenFileName(
-                self,
-                u"Open File",
-                self._settings.value("dataPath"),
-                ";;".join(
-                    ["Common formats (%s)" % " ".join(extensions())] +
-                    ["%s (%s)" % __ for __ in sorted(formats())] +
-                    ["all files (*)"]
-                ))
-        try:
-            filename, __ = filename  # PyQt5
-        except ValueError:
-            pass  # PyQt4
+        filename = filename if filename else self._getFilename()
         if filename:
             self._settings.setValue("dataPath", os.path.dirname(filename))
         else:
