@@ -68,12 +68,17 @@ class Plotter(object):
         self.lx = []
 
     def set_molecule(self, molecule):
-        """Set molecule data for this plot."""
+        """Set molecule data for this plot.
+
+        Arguments:
+            molecule (pybel.Molecule): The molecule.
+
+        """
         self.clear()
-        self.molecule = molecule
-        vib_data = (ob.toVibrationData(molecule.GetData(ob.VibrationData))
-                    if molecule.HasData(ob.VibrationData) else
-                    ob.OBVibrationData())
+        self.molecule = molecule.OBMol
+        vib_data = (ob.toVibrationData(self.molecule.GetData(ob.VibrationData))
+                    if self.molecule.HasData(ob.VibrationData)
+                    else ob.OBVibrationData())
         # Frequencies
         self.frequencies = np.array(vib_data.GetFrequencies())
         # Normalized intensities
@@ -332,7 +337,7 @@ class MoleculePlotter(Plotter):
     def set_molecule(self, molecule):
         """Set molecule data for this plot."""
         super(MoleculePlotter, self).set_molecule(molecule)
-        self._molecule2D = self._sdg(molecule)
+        self._molecule2D = self._sdg(self.molecule)
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         """Draw molecule on the axes."""

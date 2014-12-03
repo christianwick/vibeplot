@@ -55,7 +55,7 @@ else:
             uic.loadUi(uifile, self)
             uifile.close()
 
-import openbabel as ob
+import pybel
 from vibeplot import __version__
 import vibeplot.plotter as plotter
 
@@ -251,10 +251,9 @@ class QVibeplot(MainWindow):
             self.torsionFilter.value())
 
     def _getFilename(self):
-        obFormats = (format.split(" -- ") for format
-                     in ob.OBConversion().GetSupportedInputFormat())
         formats = defaultdict(str)
-        for (fmt, ext) in ((fmt, ext) for (ext, fmt) in obFormats
+        for (fmt, ext) in ((fmt, ext) for (ext, fmt)
+                           in pybel.informats.items()
                            if fmt in FORMATS):
             formats[fmt] += (" *.%s" if ext not in "CONTCAR POSCAR".split()
                              else " %s") % ext
@@ -306,11 +305,8 @@ class QVibeplot(MainWindow):
             inFormat = "vasp"
 
         # load data
-        mol = ob.OBMol()
-        obconv = ob.OBConversion()
-        obconv.SetInFormat(inFormat)
-        obconv.ReadFile(mol, str(filename))
-        if not mol.NumAtoms():
+        mol = next(pybel.readfile(inFormat, str(filename)))
+        if not mol.atoms:
             self.statusBar().showMessage(
                 "".join((
                     "Extension or file format '%s' unknown, ",
@@ -332,15 +328,11 @@ class QVibeplot(MainWindow):
             self.frequencyList.addItem(item)
 
         # window title
-        obconv.SetOutFormat("smi")
-        self.setWindowTitle(obconv.WriteString(mol))
+        self.setWindowTitle(mol.write("smi"))
 
         # SVG representation
-        obconv.SetOutFormat("svg")
-        obconv.AddOption("C", obconv.OUTOPTIONS)  # implicit carbons
-        obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
-        obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
-        self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
+        self.svgWidget.load(QByteArray(
+            mol.write("svg", opt=dict(C=None, d=None))))
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
