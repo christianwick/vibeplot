@@ -57,7 +57,47 @@ class AtomText(Text):
                       if show else self.__text)
 
 
-class MoleculePlotter(object):
+class Plotter(object):
+
+    def __init__(self, axes):
+        self.axes = axes
+        self.draw = self.axes.figure.canvas.draw_idle
+        self.molecule = ob.OBMol()
+        self.frequencies = []
+        self.intensities = []
+        self.lx = []
+
+    def set_molecule(self, molecule):
+        """Set molecule data for this plot."""
+        self.clear()
+        self.molecule = molecule
+        vib_data = (ob.toVibrationData(molecule.GetData(ob.VibrationData))
+                    if molecule.HasData(ob.VibrationData) else
+                    ob.OBVibrationData())
+        # Frequencies
+        self.frequencies = np.array(vib_data.GetFrequencies())
+        # Normalized intensities
+        self.intensities = np.array(vib_data.GetIntensities())
+        if self.intensities.any():  # max != zero
+            self.intensities /= self.intensities.max()
+        else:
+            self.intensities = np.ones_like(self.frequencies)
+        # Normal modes
+        self.lx = np.array(
+            [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
+             for row in vib_data.GetLx()], dtype=float)
+        self.lx *= 0.529177249  # to angstroem
+        if self.frequencies[-1] < self.frequencies[0]:
+            self.frequencies = self.frequencies[::-1]
+            self.lx = self.lx[::-1]
+            assert(all(self.frequencies == sorted(self.frequencies)))
+
+    def clear(self):
+        """Clear the axes."""
+        pass
+
+
+class MoleculePlotter(Plotter):
     """Draw molecule and vibration.
 
     Arguments:
@@ -73,21 +113,16 @@ class MoleculePlotter(object):
 
     """
     def __init__(self, axes):
-        super(MoleculePlotter, self).__init__()
-        self.axes = axes
+        super(MoleculePlotter, self).__init__(axes)
         self.axes.set_xticks(())
         self.axes.set_yticks(())
         for __, spine in self.axes.spines.items():
             spine.set_visible(False)
         self.axes.figure.tight_layout()
-        self.draw = self.axes.figure.canvas.draw_idle
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
-        self.molecule = ob.OBMol()
         self._molecule2D = ob.OBMol()
-        self.lx = []
-        self.frequencies = []
         self._mol_bonds = None
         self._mol_atoms = None
         self._mol_labels = []
@@ -284,6 +319,7 @@ class MoleculePlotter(object):
 
     def clear(self):
         """Clear the axes."""
+        super(MoleculePlotter, self).clear()
         for artist in self.axes.get_children():
             try:
                 artist.remove()
@@ -295,21 +331,8 @@ class MoleculePlotter(object):
 
     def set_molecule(self, molecule):
         """Set molecule data for this plot."""
-        self.molecule = molecule
+        super(MoleculePlotter, self).set_molecule(molecule)
         self._molecule2D = self._sdg(molecule)
-        self.clear()
-
-    def set_vibration_data(self, vib_data):
-        """Set vibration data for this plot."""
-        self.frequencies = np.array(vib_data.GetFrequencies())
-        self.lx = np.array(
-            [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
-             for row in vib_data.GetLx()], dtype=float)
-        self.lx *= 0.529177249  # to angstroem
-        if self.frequencies[-1] < self.frequencies[0]:
-            self.frequencies = self.frequencies[::-1]
-            self.lx = self.lx[::-1]
-            assert(all(self.frequencies == sorted(self.frequencies)))
 
     def draw_molecule(self, padding=0.3, lw=1.0, fontsize=12.0):
         """Draw molecule on the axes."""
@@ -360,7 +383,7 @@ class MoleculePlotter(object):
         self.draw()
 
 
-class SpectrumPlotter(object):
+class SpectrumPlotter(Plotter):
     """Draw spectrum.
 
     Arguments:
@@ -368,13 +391,11 @@ class SpectrumPlotter(object):
 
     """
     def __init__(self, axes):
-        super(SpectrumPlotter, self).__init__()
-        self.axes = axes
+        super(SpectrumPlotter, self).__init__(axes)
         self.axes.set_xlabel("Wavenumber [cm$^{-1}$]")
         self.axes.axis([0, 4000, 0, 1])
         self.axes.set_yticks(())
         self.axes.figure.tight_layout()
-        self.draw = self.axes.figure.canvas.draw_idle
         self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
                                       color="r", lw=2.0)
         self.broadening = Line2D([], [], linewidth=1.0, color="k")
@@ -382,8 +403,6 @@ class SpectrumPlotter(object):
         self.axes.add_line(self.broadening)
         self._broadening_function = None
         self._fwhm = 8.0
-        self.frequencies = []
-        self.intensities = []
         self._spectrum = None
 
     def _add_spectrum_collection(self, **kwargs):
@@ -418,16 +437,6 @@ class SpectrumPlotter(object):
         for collection in self.axes.collections:
             collection.remove()
         self._spectrum = None
-
-    def set_vibration_data(self, vib_data):
-        """Set vibration data for this plot."""
-        self.frequencies = np.array(vib_data.GetFrequencies())
-        self.intensities = np.array(vib_data.GetIntensities())
-        if self.intensities.any():  # max != zero
-            self.intensities /= self.intensities.max()
-        if not self.intensities.size:
-            self.intensities = np.ones_like(self.frequencies)
-        self.clear()
         self.set_vibration("")
 
     def draw_spectrum(self):

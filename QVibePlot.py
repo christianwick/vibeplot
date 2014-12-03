@@ -316,23 +316,19 @@ class QVibeplot(MainWindow):
                     "Extension or file format '%s' unknown, ",
                     "see http://openbabel.org for the list of ",
                     "supported files.")) % inFormat)
-        vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
-                   if mol.HasData(ob.VibrationData) else
-                   ob.OBVibrationData())
-        self.moleculePlotter.set_vibration_data(vibData)
         self.moleculePlotter.set_molecule(mol)
+        self.spectrumPlotter.set_molecule(mol)
         self.moleculePlotter.draw_molecule(
             lw=str(self.lineWidthComboBox.currentText()),
             fontsize=str(self.fontSizeComboBox.currentText())
         )
-        self.spectrumPlotter.set_vibration_data(vibData)
         self.spectrumPlotter.draw_spectrum()
 
         # populate frequencyList
         self.frequencyList.clear()
-        for freq in vibData.GetFrequencies():
+        for freq in self.spectrumPlotter.frequencies:
             item = QListWidgetItem()
-            item.setData(Qt.DisplayRole, freq)
+            item.setData(Qt.DisplayRole, freq.item())
             self.frequencyList.addItem(item)
 
         # window title
