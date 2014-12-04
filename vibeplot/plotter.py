@@ -94,8 +94,9 @@ class Plotter(object):
         self.lx *= 0.529177249  # to angstroem
         if self.frequencies[-1] < self.frequencies[0]:
             self.frequencies = self.frequencies[::-1]
+            self.intensities = self.intensities[::-1]
             self.lx = self.lx[::-1]
-            assert(all(self.frequencies == sorted(self.frequencies)))
+        assert(all(self.frequencies == sorted(self.frequencies)))
 
     def clear(self):
         """Clear the axes."""
