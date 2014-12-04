@@ -153,7 +153,6 @@ class MoleculePlotter(Plotter):
             return np.array((vec.GetX(), vec.GetY(), vec.GetZ()))
 
         atomnc = ob.OBAtom()
-        atomnc.Duplicate(atom)
         nc = ar(atom) + self.lx[index][atom.GetIdx() - 1]
         atomnc.SetVector(*nc)
         return atomnc
@@ -167,7 +166,6 @@ class MoleculePlotter(Plotter):
             raise NameError("name 'gen2D' is not defined")
         gen2D.Do(molecule2D)
         assert(not molecule2D.Has3D())
-        assert(molecule.NumAtoms() == molecule2D.NumAtoms())
         return molecule2D
 
     def _add_atom_labels(self, zorder=100, **kwargs):
