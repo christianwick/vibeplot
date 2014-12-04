@@ -55,7 +55,7 @@ else:
             uic.loadUi(uifile, self)
             uifile.close()
 
-import openbabel as ob
+import pybel
 from vibeplot import __version__
 import vibeplot.plotter as plotter
 
@@ -250,6 +250,40 @@ class QVibeplot(MainWindow):
             self.angleFilter.value(),
             self.torsionFilter.value())
 
+    def _getFilename(self):
+        formats = defaultdict(str)
+        for (fmt, ext) in ((fmt, ext) for (ext, fmt)
+                           in pybel.informats.items()
+                           if fmt in FORMATS):
+            formats[fmt] += (" *.%s" if ext not in "CONTCAR POSCAR".split()
+                             else " %s") % ext
+        try:
+            # py2
+            # Strip first blank in extension list
+            _formats = {fmt: ext[1:] for (fmt, ext)
+                        in formats.iteritems()}
+            formats, extensions = _formats.iteritems, _formats.itervalues
+        except AttributeError:
+            # py3
+            _formats = {fmt: ext[1:] for (fmt, ext)
+                        in formats.items()}
+            formats, extensions = _formats.items, _formats.values
+
+        filename = QFileDialog.getOpenFileName(
+            self,
+            u"Open File",
+            self._settings.value("dataPath"),
+            ";;".join(
+                ["Common formats (%s)" % " ".join(extensions())] +
+                ["%s (%s)" % __ for __ in sorted(formats())] +
+                ["all files (*)"]
+            ))
+        try:
+            filename, __ = filename  # PyQt5
+        except ValueError:
+            pass  # PyQt4
+        return filename
+
     def setWindowTitle(self, text=""):
         """Write QVibeplot in the window title."""
         super(QVibeplot, self).setWindowTitle(
@@ -258,39 +292,7 @@ class QVibeplot(MainWindow):
 
     def loadFile(self, filename=None, inFormat=None):
         """Use Open Babel to load a molecule from a file."""
-        if not filename:
-            obFormats = (format.split(" -- ") for format
-                         in ob.OBConversion().GetSupportedInputFormat())
-            formats = defaultdict(str)
-            for (fmt, ext) in ((fmt, ext) for (ext, fmt) in obFormats
-                               if fmt in FORMATS):
-                formats[fmt] += (" *.%s"
-                                 if ext not in "CONTCAR POSCAR".split()
-                                 else " %s") % ext
-            try:
-                # py2
-                # Strip first blank in extension list
-                _formats = {fmt: ext[1:] for (fmt, ext)
-                            in formats.iteritems()}
-                formats, extensions = _formats.iteritems, _formats.itervalues
-            except AttributeError:
-                # py3
-                _formats = {fmt: ext[1:] for (fmt, ext)
-                            in formats.items()}
-                formats, extensions = _formats.items, _formats.values
-            filename = QFileDialog.getOpenFileName(
-                self,
-                u"Open File",
-                self._settings.value("dataPath"),
-                ";;".join(
-                    ["Common formats (%s)" % " ".join(extensions())] +
-                    ["%s (%s)" % __ for __ in sorted(formats())] +
-                    ["all files (*)"]
-                ))
-        try:
-            filename, __ = filename  # PyQt5
-        except ValueError:
-            pass  # PyQt4
+        filename = filename if filename else self._getFilename()
         if filename:
             self._settings.setValue("dataPath", os.path.dirname(filename))
         else:
@@ -303,45 +305,34 @@ class QVibeplot(MainWindow):
             inFormat = "vasp"
 
         # load data
-        mol = ob.OBMol()
-        obconv = ob.OBConversion()
-        obconv.SetInFormat(inFormat)
-        obconv.ReadFile(mol, str(filename))
-        if not mol.NumAtoms():
+        mol = next(pybel.readfile(inFormat, str(filename)))
+        if not mol.atoms:
             self.statusBar().showMessage(
                 "".join((
                     "Extension or file format '%s' unknown, ",
                     "see http://openbabel.org for the list of ",
                     "supported files.")) % inFormat)
-        vibData = (ob.toVibrationData(mol.GetData(ob.VibrationData))
-                   if mol.HasData(ob.VibrationData) else
-                   ob.OBVibrationData())
-        self.moleculePlotter.set_vibration_data(vibData)
         self.moleculePlotter.set_molecule(mol)
+        self.spectrumPlotter.set_molecule(mol)
         self.moleculePlotter.draw_molecule(
             lw=str(self.lineWidthComboBox.currentText()),
             fontsize=str(self.fontSizeComboBox.currentText())
         )
-        self.spectrumPlotter.set_vibration_data(vibData)
         self.spectrumPlotter.draw_spectrum()
 
         # populate frequencyList
         self.frequencyList.clear()
-        for freq in vibData.GetFrequencies():
+        for freq in self.spectrumPlotter.frequencies:
             item = QListWidgetItem()
-            item.setData(Qt.DisplayRole, freq)
+            item.setData(Qt.DisplayRole, freq.item())
             self.frequencyList.addItem(item)
 
         # window title
-        obconv.SetOutFormat("smi")
-        self.setWindowTitle(obconv.WriteString(mol))
+        self.setWindowTitle(mol.write("smi"))
 
         # SVG representation
-        obconv.SetOutFormat("svg")
-        obconv.AddOption("C", obconv.OUTOPTIONS)  # implicit carbons
-        obconv.AddOption("d", obconv.OUTOPTIONS)  # no molecule name
-        obconv.AddOption("d", obconv.GENOPTIONS)  # implicit hydrogens
-        self.svgWidget.load(QByteArray(obconv.WriteString(mol)))
+        self.svgWidget.load(QByteArray(
+            mol.write("svg", opt=dict(C=None, d=None))))
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
