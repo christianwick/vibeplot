@@ -75,7 +75,7 @@ class Plotter(object):
 
         """
         self.clear()
-        self.molecule = molecule.OBMol
+        self.molecule = ob.OBMol(molecule.OBMol)
         vib_data = (ob.toVibrationData(self.molecule.GetData(ob.VibrationData))
                     if self.molecule.HasData(ob.VibrationData)
                     else ob.OBVibrationData())
