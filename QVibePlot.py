@@ -64,7 +64,7 @@ import vibeplot.plotter as plotter
 
 FORMATS = [
     "ACES output format",
-    "Crystal 09 output format",
+    "Aoforce output format",
     "GAMESS Output",
     "GAMESS-UK Output",
     "Gaussian Output",
