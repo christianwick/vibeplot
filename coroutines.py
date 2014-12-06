@@ -76,7 +76,9 @@ def dct_set(dct):
 
 @coroutine
 def printer(file=sys.stdout):
-    printer.close = file.close
-    while True:
-        obj = (yield)
-        print(obj, file=file, end="")
+    try:
+        while True:
+            obj = (yield)
+            print(obj, file=file, end="")
+    finally:
+        file.close()
