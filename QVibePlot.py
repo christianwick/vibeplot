@@ -29,6 +29,7 @@ try:
     matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
+    _getOpenFileName = QFileDialog.getOpenFileName
 except ImportError:
     from PyQt4.QtGui import *
     from PyQt4.QtCore import *
@@ -38,6 +39,8 @@ except ImportError:
     matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
                                                     as NavigationToolbar)
+    _getOpenFileName = QFileDialog.getOpenFileNameAndFilter
+from matplotlib.backends.qt_compat import _getSaveFileName
 
 if platform.system() == "Windows":
     from qvibeplot_ui import Ui_MainWindow
@@ -262,7 +265,7 @@ class QVibeplot(MainWindow):
                                else " %s") % ext
         informats = {fmt: ext[1:] for (fmt, ext) in items(informats)}
         formats, extensions = items(informats), values(informats)
-        filename = QFileDialog.getOpenFileName(
+        filename, __ = _getOpenFileName(
             self,
             u"Open File",
             self._settings.value("dataPath"),
@@ -271,8 +274,6 @@ class QVibeplot(MainWindow):
                 ["%s (%s)" % __ for __ in sorted(formats)] +
                 ["all files (*)"]
             ))
-        if not isinstance(filename, six.string_types):
-            filename, __ = filename  # PyQt5
         return filename
 
     def setWindowTitle(self, text=""):
@@ -327,14 +328,11 @@ class QVibeplot(MainWindow):
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
-        imagePath = self._settings.value("imagePath")
-        filename = QFileDialog.getSaveFileName(
+        filename, __ = _getSaveFileName(
             self,
             u"Save Spectrum Values",
-            imagePath,
+            self._settings.value("imagePath"),
             "plain text (*.txt)")
-        if not isinstance(filename, unicode):
-            filename = filename.pop()
         if not filename:
             return
         if "." not in filename:
