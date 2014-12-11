@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'qvibeplot.ui'
 #
-# Created: Mon Nov 24 15:35:11 2014
+# Created: Mon Dec 15 17:38:53 2014
 #      by: PyQt5 UI code generator 5.3.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -20,6 +20,12 @@ class Ui_MainWindow(object):
         self.leftVLayout = QtWidgets.QVBoxLayout()
         self.leftVLayout.setObjectName("leftVLayout")
         self.moleculeGB = QtWidgets.QGroupBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.moleculeGB.sizePolicy().hasHeightForWidth())
+        self.moleculeGB.setSizePolicy(sizePolicy)
+        self.moleculeGB.setMinimumSize(QtCore.QSize(250, 0))
         self.moleculeGB.setObjectName("moleculeGB")
         self.formLayout_3 = QtWidgets.QFormLayout(self.moleculeGB)
         self.formLayout_3.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
@@ -70,6 +76,12 @@ class Ui_MainWindow(object):
         self.formLayout_3.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.colorLabelCheckBox)
         self.leftVLayout.addWidget(self.moleculeGB)
         self.vibrationGB = QtWidgets.QGroupBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.vibrationGB.sizePolicy().hasHeightForWidth())
+        self.vibrationGB.setSizePolicy(sizePolicy)
+        self.vibrationGB.setMinimumSize(QtCore.QSize(250, 0))
         self.vibrationGB.setObjectName("vibrationGB")
         self.formLayout_2 = QtWidgets.QFormLayout(self.vibrationGB)
         self.formLayout_2.setObjectName("formLayout_2")
@@ -103,6 +115,12 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.torsionFilter)
         self.leftVLayout.addWidget(self.vibrationGB)
         self.spectrumGB = QtWidgets.QGroupBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.spectrumGB.sizePolicy().hasHeightForWidth())
+        self.spectrumGB.setSizePolicy(sizePolicy)
+        self.spectrumGB.setMinimumSize(QtCore.QSize(250, 0))
         self.spectrumGB.setObjectName("spectrumGB")
         self.formLayout = QtWidgets.QFormLayout(self.spectrumGB)
         self.formLayout.setObjectName("formLayout")
@@ -125,9 +143,21 @@ class Ui_MainWindow(object):
         self.fwhmDoubleSpinBox.setObjectName("fwhmDoubleSpinBox")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.fwhmDoubleSpinBox)
         self.leftVLayout.addWidget(self.spectrumGB)
-        self.frequencyList = QtWidgets.QListWidget(self.centralwidget)
-        self.frequencyList.setObjectName("frequencyList")
-        self.leftVLayout.addWidget(self.frequencyList)
+        self.spectrumTable = QtWidgets.QTableWidget(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.spectrumTable.sizePolicy().hasHeightForWidth())
+        self.spectrumTable.setSizePolicy(sizePolicy)
+        self.spectrumTable.setMinimumSize(QtCore.QSize(250, 0))
+        self.spectrumTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.spectrumTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.spectrumTable.setColumnCount(2)
+        self.spectrumTable.setObjectName("spectrumTable")
+        self.spectrumTable.setRowCount(0)
+        self.spectrumTable.horizontalHeader().setVisible(True)
+        self.spectrumTable.horizontalHeader().setStretchLastSection(True)
+        self.leftVLayout.addWidget(self.spectrumTable)
         self.horizontalLayout.addLayout(self.leftVLayout)
         self.rightVLayout = QtWidgets.QVBoxLayout()
         self.rightVLayout.setObjectName("rightVLayout")
@@ -189,6 +219,7 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.fontSizeComboBox.setCurrentIndex(3)
         self.lineWidthComboBox.setCurrentIndex(3)
+        self.broadeningComboBox.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -216,7 +247,6 @@ class Ui_MainWindow(object):
         self.broadeningComboBox.setItemText(1, _translate("MainWindow", "lorentzian"))
         self.broadeningComboBox.setItemText(2, _translate("MainWindow", "gaussian"))
         self.fwhmLabel.setText(_translate("MainWindow", "FWHM"))
-        self.frequencyList.setSortingEnabled(True)
         self.fileMenu.setTitle(_translate("MainWindow", "File"))
         self.viewMenu.setTitle(_translate("MainWindow", "View"))
         self.helpMenu.setTitle(_translate("MainWindow", "Help"))

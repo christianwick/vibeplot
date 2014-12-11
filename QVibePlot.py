@@ -7,8 +7,10 @@ from __future__ import print_function
 import sys
 import os.path
 import platform
+import csv
 from glob import glob
 from functools import partial
+from six.moves import zip_longest
 from collections import defaultdict
 
 import six
@@ -25,6 +27,7 @@ try:
     from PyQt5.QtCore import *
     from PyQt5.QtSvg import QSvgWidget
     from PyQt5 import uic
+    Slot = pyqtSlot
     import rcc5
     matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
@@ -35,6 +38,7 @@ except ImportError:
     from PyQt4.QtCore import *
     from PyQt4.QtSvg import QSvgWidget
     from PyQt4 import uic
+    Slot = pyqtSlot
     import rcc4
     matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
@@ -81,12 +85,52 @@ FORMATS = [
 ]
 
 
+class FormatTextDelegate(QStyledItemDelegate):
+
+    """QStyledItemDelegate formatting the text displayed."""
+
+    def __init__(self, format="%0.2f", parent=None):
+        super(FormatTextDelegate, self).__init__(parent)
+        self._format = format
+
+    def displayText(self, value, locale):
+        return self._format % value
+
+
+class ItemSelectionModel(QItemSelectionModel):
+
+    def __init__(self, model, parent=None):
+        super(ItemSelectionModel, self).__init__(model, parent)
+
+    @Slot()
+    def copy(self):
+        if not self.hasSelection(): return
+        previous = QModelIndex()
+        fields = []
+        for index in sorted(self.selectedIndexes()):
+            if index.row() is previous.row():
+                fields[-1].append(index.data())
+            else:
+                fields.append([index.data()])
+            previous = index
+        csvfile = six.StringIO()
+        writer = csv.writer(csvfile)
+        writer.writerows(fields)
+        QApplication.clipboard().setText(csvfile.getvalue())
+
+
 class QVibeplot(MainWindow):
 
     """vibeplot graphical user interface."""
 
     def __init__(self):
         super(QVibeplot, self).__init__()
+        self.spectrumTable.setHorizontalHeaderLabels(
+            [u"\u03bd\u0305 / cm\u207b\u00b9", u"Intensity / %"])
+        self.spectrumTable.setSelectionModel(
+            ItemSelectionModel(self.spectrumTable.model(), self.spectrumTable))
+        self.spectrumTable.setItemDelegate(
+            FormatTextDelegate("%0.0f", self.spectrumTable))
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
         self.rightVLayout.insertWidget(
@@ -98,6 +142,7 @@ class QVibeplot(MainWindow):
         self.svgWidget.setPalette(palette)
 
         self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.spectrumTable.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
 
         self.moleculePlotter = plotter.MoleculePlotter(
@@ -110,28 +155,14 @@ class QVibeplot(MainWindow):
             if not self._settings.contains(setting):
                 self._settings.setValue(setting, QDir.homePath())
 
-        # Connect widgets
-        self.fontSizeComboBox.currentIndexChanged[str].connect(
-            self.moleculePlotter.set_fontsize)
-        self.lineWidthComboBox.currentIndexChanged[str].connect(
-            self.moleculePlotter.set_linewidth)
-        self.colorLabelCheckBox.stateChanged.connect(
-            lambda checked:
-            self.moleculePlotter.set_black_labels(checked==Qt.Checked))
-        self.bondlengthFilter.valueChanged.connect(self._drawVibration)
-        self.angleFilter.valueChanged.connect(self._drawVibration)
-        self.torsionFilter.valueChanged.connect(self._drawVibration)
-        self.broadeningComboBox.currentIndexChanged[str].connect(
-            self.spectrumPlotter.set_broadening_function)
-        self.fwhmDoubleSpinBox.valueChanged.connect(
-            self.spectrumPlotter.set_fwhm)
-        self.frequencyList.currentTextChanged.connect(
-            self.spectrumPlotter.set_vibration)
-        self.frequencyList.currentRowChanged.connect(self._drawVibration)
         # Create actions
-        self.saveSpectrumAction = QAction(
-            u"Save Spectrum...", self.spectrumCanvas,
-            triggered=self.saveSpectrum)
+        self.saveSpectrumDataAction = QAction(
+            u"Save Spectral Broadening Data...", self.spectrumCanvas,
+            triggered=self.saveSpectrum, enabled=False)
+        self.copySpectrumDataAction = QAction(
+            u"Copy", self.spectrumTable,
+            shortcut=QKeySequence.Copy,
+            triggered=self.spectrumTable.selectionModel().copy)
         self.openFileAction = QAction(
             u"Open", self.fileMenu,
             shortcut=QKeySequence.Open,
@@ -150,8 +181,37 @@ class QVibeplot(MainWindow):
         self.showSkeletonAction = QAction(
             u"Show Skeleton", self.viewMenu,
             triggered=self.svgWidget.show)
+
+        # Connect widgets
+        self.fontSizeComboBox.currentIndexChanged[str].connect(
+            self.moleculePlotter.set_fontsize)
+        self.lineWidthComboBox.currentIndexChanged[str].connect(
+            self.moleculePlotter.set_linewidth)
+        self.colorLabelCheckBox.stateChanged.connect(
+            lambda checked:
+            self.moleculePlotter.set_black_labels(checked==Qt.Checked))
+        self.bondlengthFilter.valueChanged.connect(
+            lambda value: self._drawVibration())
+        self.angleFilter.valueChanged.connect(
+            lambda value: self._drawVibration())
+        self.torsionFilter.valueChanged.connect(
+            lambda value: self._drawVibration())
+        self.broadeningComboBox.currentIndexChanged[str].connect(
+            self.spectrumPlotter.set_broadening_function)
+        self.broadeningComboBox.currentIndexChanged.connect(
+            self.saveSpectrumDataAction.setEnabled)
+        self.fwhmDoubleSpinBox.valueChanged.connect(
+            self.spectrumPlotter.set_fwhm)
+        self.spectrumTable.selectionModel().currentRowChanged.connect(
+            lambda current, previous:
+            self.spectrumPlotter.set_vibration(
+                self.spectrumTable.item(current.row(), 0)
+                .data(Qt.DisplayRole)))
+        self.spectrumTable.selectionModel().currentRowChanged.connect(
+            lambda current, previous: self._drawVibration())
         # Add actions
-        self.spectrumCanvas.addAction(self.saveSpectrumAction)
+        self.spectrumTable.addAction(self.copySpectrumDataAction)
+        self.spectrumCanvas.addAction(self.saveSpectrumDataAction)
         self.moleculeCanvas.addActions(
             (self.saveImageAction, self.showAtomIndexAction,
              self.showSkeletonAction))
@@ -250,7 +310,7 @@ class QVibeplot(MainWindow):
     def _drawVibration(self):
         """Pass parameters from GUI to `moleculePlotter.draw_vibration`."""
         self.moleculePlotter.draw_vibration(
-            self.frequencyList.currentRow(),
+            self.spectrumTable.currentRow(),
             self.bondlengthFilter.value(),
             self.angleFilter.value(),
             self.torsionFilter.value())
@@ -312,12 +372,18 @@ class QVibeplot(MainWindow):
         )
         self.spectrumPlotter.draw_spectrum()
 
-        # populate frequencyList
-        self.frequencyList.clear()
-        for freq in self.spectrumPlotter.frequencies:
-            item = QListWidgetItem()
-            item.setData(Qt.DisplayRole, freq.item())
-            self.frequencyList.addItem(item)
+        # populate spectrumTable
+        self.spectrumTable.setRowCount(len(self.spectrumPlotter.frequencies))
+        intensities = self.spectrumPlotter.intensities
+        intensities *= 100.0 / intensities.max()
+        for row, (frequency, intensity) in enumerate(
+                zip_longest(self.spectrumPlotter.frequencies,
+                            intensities,
+                            fillvalue=100.0)):
+            for column, data in enumerate((frequency, intensity)):
+                item = QTableWidgetItem()
+                item.setData(Qt.DisplayRole, data.item())
+                self.spectrumTable.setItem(row, column, item)
 
         # window title
         self.setWindowTitle(mol.write("smi"))
