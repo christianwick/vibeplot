@@ -8,16 +8,11 @@ import sys
 import os.path
 import platform
 import csv
+import six
 from glob import glob
 from functools import partial
 from six.moves import zip_longest
 from collections import defaultdict
-
-import six
-
-import sip
-for qtype in "QString QTextStream QVariant".split():
-    sip.setapi(qtype, 2)
 
 # Import Qt and matplotlib modules
 import matplotlib
@@ -34,6 +29,10 @@ try:
                                                     as NavigationToolbar)
     _getOpenFileName = QFileDialog.getOpenFileName
 except ImportError:
+    import sip
+    for qtype in "QString QTextStream QVariant".split():
+        sip.setapi(qtype, 2)
+
     from PyQt4.QtGui import *
     from PyQt4.QtCore import *
     from PyQt4.QtSvg import QSvgWidget
