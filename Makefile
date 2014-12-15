@@ -17,7 +17,9 @@ lint:
 	pylint --include-ids=y --disable=C0103 QVibePlot.py
 
 rcc:
-	pyrcc4 -o rsc/__init__.py rsc/resources.qrc
+	pyuic5 -o qvibeplot_ui.py qvibeplot.ui
+	pyrcc4 -o rcc4.py rcc.qrc
+	pyrcc5 -o rcc5.py rcc.qrc
 
 distribution:
 	python setup.py sdist
