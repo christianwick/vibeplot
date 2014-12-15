@@ -364,6 +364,8 @@ class QVibeplot(MainWindow):
                     "Extension or file format '%s' unknown, ",
                     "see http://openbabel.org for the list of ",
                     "supported files.")) % inFormat)
+        self.moleculePlotter.clear()
+        self.spectrumPlotter.clear()
         self.moleculePlotter.set_molecule(mol)
         self.spectrumPlotter.set_molecule(mol)
         self.moleculePlotter.draw_molecule(

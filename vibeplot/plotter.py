@@ -74,7 +74,6 @@ class Plotter(object):
             molecule (pybel.Molecule): The molecule.
 
         """
-        self.clear()
         self.molecule = ob.OBMol(molecule.OBMol)
         vib_data = (ob.toVibrationData(self.molecule.GetData(ob.VibrationData))
                     if self.molecule.HasData(ob.VibrationData)
@@ -100,7 +99,7 @@ class Plotter(object):
 
     def clear(self):
         """Clear the axes."""
-        pass
+        self.axes.clear()
 
 
 class MoleculePlotter(Plotter):
@@ -120,11 +119,7 @@ class MoleculePlotter(Plotter):
     """
     def __init__(self, axes):
         super(MoleculePlotter, self).__init__(axes)
-        self.axes.set_xticks(())
-        self.axes.set_yticks(())
-        for __, spine in self.axes.spines.items():
-            spine.set_visible(False)
-        self.axes.figure.tight_layout()
+        self.clear()
         self.oop_curve_type = 4
         self.bond_colors = self.arc_colors = ("b", "r")
         self.oop_colors = ("g", "y")
@@ -324,11 +319,12 @@ class MoleculePlotter(Plotter):
     def clear(self):
         """Clear the axes."""
         super(MoleculePlotter, self).clear()
-        for artist in self.axes.get_children():
-            try:
-                artist.remove()
-            except NotImplementedError:
-                pass
+        self.axes.set_xticks(())
+        self.axes.set_yticks(())
+        for __, spine in self.axes.spines.items():
+            spine.set_visible(False)
+        self.axes.figure.tight_layout()
+        self.axes.figure.subplots_adjust(left=0, bottom=0, right=1, top=1)
         self._mol_labels = []
         self._mol_atoms = self._mol_bonds = None
         self._vib_bonds = self._vib_angles = self._vib_oop = None
@@ -396,15 +392,7 @@ class SpectrumPlotter(Plotter):
     """
     def __init__(self, axes):
         super(SpectrumPlotter, self).__init__(axes)
-        self.axes.set_xlabel("Wavenumber [cm$^{-1}$]")
-        self.axes.axis([0, 4000, 0, 1])
-        self.axes.set_yticks(())
-        self.axes.figure.tight_layout()
-        self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
-                                      color="r", lw=2.0)
-        self.broadening = Line2D([], [], linewidth=1.0, color="k")
-        self.axes.add_line(self.needle)
-        self.axes.add_line(self.broadening)
+        self.clear()
         self._broadening_function = None
         self._fwhm = 8.0
         self._spectrum = None
@@ -438,8 +426,16 @@ class SpectrumPlotter(Plotter):
 
     def clear(self):
         """Clear the axes."""
-        for collection in self.axes.collections:
-            collection.remove()
+        super(SpectrumPlotter, self).clear()
+        self.axes.set_xlabel("Wavenumber [cm$^{-1}$]")
+        self.axes.axis([0, 4000, 0, 1])
+        self.axes.set_yticks(())
+        self.axes.figure.tight_layout()
+        self.needle, = self.axes.plot((0.0, 0.0), (0.0, 1.0),
+                                      color="r", lw=2.0)
+        self.broadening = Line2D([], [], linewidth=1.0, color="k")
+        self.axes.add_line(self.needle)
+        self.axes.add_line(self.broadening)
         self._spectrum = None
         self.set_vibration("")
 
