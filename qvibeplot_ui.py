@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'qvibeplot.ui'
 #
-# Created: Mon Dec 15 17:38:53 2014
+# Created: Wed Dec 17 12:51:38 2014
 #      by: PyQt5 UI code generator 5.3.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -15,8 +15,8 @@ class Ui_MainWindow(object):
         MainWindow.resize(757, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.leftVLayout = QtWidgets.QVBoxLayout()
         self.leftVLayout.setObjectName("leftVLayout")
         self.moleculeGB = QtWidgets.QGroupBox(self.centralwidget)
@@ -158,17 +158,40 @@ class Ui_MainWindow(object):
         self.spectrumTable.horizontalHeader().setVisible(True)
         self.spectrumTable.horizontalHeader().setStretchLastSection(True)
         self.leftVLayout.addWidget(self.spectrumTable)
-        self.horizontalLayout.addLayout(self.leftVLayout)
+        self.horizontalLayout_2.addLayout(self.leftVLayout)
         self.rightVLayout = QtWidgets.QVBoxLayout()
         self.rightVLayout.setObjectName("rightVLayout")
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.svgWidget = QSvgWidget(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(3)
+        sizePolicy.setHeightForWidth(self.svgWidget.sizePolicy().hasHeightForWidth())
+        self.svgWidget.setSizePolicy(sizePolicy)
+        self.svgWidget.setMinimumSize(QtCore.QSize(200, 0))
+        self.svgWidget.setObjectName("svgWidget")
+        self.horizontalLayout.addWidget(self.svgWidget)
         self.moleculeCanvas = MplCanvas(self.centralwidget)
-        self.moleculeCanvas.setMinimumSize(QtCore.QSize(200, 200))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.moleculeCanvas.sizePolicy().hasHeightForWidth())
+        self.moleculeCanvas.setSizePolicy(sizePolicy)
+        self.moleculeCanvas.setMinimumSize(QtCore.QSize(200, 0))
         self.moleculeCanvas.setObjectName("moleculeCanvas")
-        self.rightVLayout.addWidget(self.moleculeCanvas)
+        self.horizontalLayout.addWidget(self.moleculeCanvas)
+        self.rightVLayout.addLayout(self.horizontalLayout)
         self.spectrumCanvas = MplCanvas(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.spectrumCanvas.sizePolicy().hasHeightForWidth())
+        self.spectrumCanvas.setSizePolicy(sizePolicy)
+        self.spectrumCanvas.setMinimumSize(QtCore.QSize(0, 200))
         self.spectrumCanvas.setObjectName("spectrumCanvas")
         self.rightVLayout.addWidget(self.spectrumCanvas)
-        self.horizontalLayout.addLayout(self.rightVLayout)
+        self.horizontalLayout_2.addLayout(self.rightVLayout)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menuBar = QtWidgets.QMenuBar(MainWindow)
         self.menuBar.setGeometry(QtCore.QRect(0, 0, 757, 19))
@@ -262,3 +285,4 @@ class Ui_MainWindow(object):
         self.aboutMplAction.setText(_translate("MainWindow", "About Matplotlib"))
 
 from mpl_canvas import MplCanvas
+from svg_widget import QSvgWidget

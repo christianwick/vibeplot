@@ -14,7 +14,7 @@
    <string>QVibeplot</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QHBoxLayout" name="horizontalLayout_2">
     <item>
      <layout class="QVBoxLayout" name="leftVLayout">
       <item>
@@ -383,17 +383,56 @@
     <item>
      <layout class="QVBoxLayout" name="rightVLayout">
       <item>
-       <widget class="MplCanvas" name="moleculeCanvas" native="true">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSvgWidget" name="svgWidget" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+            <horstretch>0</horstretch>
+            <verstretch>3</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="MplCanvas" name="moleculeCanvas" native="true">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="MplCanvas" name="spectrumCanvas" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+          <horstretch>0</horstretch>
+          <verstretch>1</verstretch>
+         </sizepolicy>
+        </property>
         <property name="minimumSize">
          <size>
-          <width>200</width>
+          <width>0</width>
           <height>200</height>
          </size>
         </property>
        </widget>
-      </item>
-      <item>
-       <widget class="MplCanvas" name="spectrumCanvas" native="true"/>
       </item>
      </layout>
     </item>
@@ -487,6 +526,12 @@
    <class>MplCanvas</class>
    <extends>QWidget</extends>
    <header>mpl_canvas</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QSvgWidget</class>
+   <extends>QWidget</extends>
+   <header>svg_widget</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -18,11 +18,10 @@ from collections import defaultdict
 import matplotlib
 try:
     from PyQt5.QtWidgets import *
-    from PyQt5.QtGui import QPalette, QColor, QKeySequence
+    from PyQt5.QtGui import QKeySequence
     from PyQt5.QtCore import *
-    from PyQt5.QtSvg import QSvgWidget
     from PyQt5 import uic
-    Slot = pyqtSlot
+    Signal, Slot = pyqtSignal, pyqtSlot
     import rcc5
     matplotlib.use("Qt5Agg")
     from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT
@@ -35,9 +34,8 @@ except ImportError:
 
     from PyQt4.QtGui import *
     from PyQt4.QtCore import *
-    from PyQt4.QtSvg import QSvgWidget
     from PyQt4 import uic
-    Slot = pyqtSlot
+    Signal, Slot = pyqtSignal, pyqtSlot
     import rcc4
     matplotlib.use("Qt4Agg")
     from matplotlib.backends.backend_qt4agg import (NavigationToolbar2QT
@@ -133,13 +131,7 @@ class QVibeplot(MainWindow):
             FormatTextDelegate("%0.0f", self.spectrumTable))
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
-        self.rightVLayout.insertWidget(
-            self.rightVLayout.indexOf(self.moleculeCanvas) + 1, self.toolbar)
-
-        self.svgWidget = QSvgWidget()
-        palette = QPalette(self.svgWidget.palette())
-        palette.setColor(palette.Window, QColor("white"))
-        self.svgWidget.setPalette(palette)
+        self.rightVLayout.insertWidget(1, self.toolbar)
 
         self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumTable.setContextMenuPolicy(Qt.ActionsContextMenu)
@@ -178,9 +170,6 @@ class QVibeplot(MainWindow):
         self.showAtomIndexAction = QAction(
             u"Atom Index", self.viewMenu, checkable=True,
             triggered=self.moleculePlotter.show_atom_index)
-        self.showSkeletonAction = QAction(
-            u"Show Skeleton", self.viewMenu,
-            triggered=self.svgWidget.show)
 
         # Connect widgets
         self.fontSizeComboBox.currentIndexChanged[str].connect(
@@ -213,8 +202,7 @@ class QVibeplot(MainWindow):
         self.spectrumTable.addAction(self.copySpectrumDataAction)
         self.spectrumCanvas.addAction(self.saveSpectrumDataAction)
         self.moleculeCanvas.addActions(
-            (self.saveImageAction, self.showAtomIndexAction,
-             self.showSkeletonAction))
+            (self.saveImageAction, self.showAtomIndexAction))
         # File menu
         self.fileMenu.addActions((self.openFileAction, self.saveImageAction,
                                   self.quitAction))
@@ -246,8 +234,7 @@ class QVibeplot(MainWindow):
         self.fileMenu.addSeparator()
         self.fileMenu.addMenu(self.orbiMolDbMenu)
         # View menu
-        self.viewMenu.addActions((self.showAtomIndexAction,
-                                  self.showSkeletonAction))
+        self.viewMenu.addActions((self.showAtomIndexAction,))
         # Help menu
         self.helpMenu.addActions((
             QAction(u"About", self.helpMenu, triggered=partial(
@@ -388,11 +375,24 @@ class QVibeplot(MainWindow):
                 self.spectrumTable.setItem(row, column, item)
 
         # window title
-        self.setWindowTitle(mol.write("smi"))
+        self.setWindowTitle(mol.write(
+            "can", opt=dict(n=None,  # no molecule name
+                            i=None,  # no chiral markings
+                            )))
 
         # SVG representation
+        mol.removeh()      # implicit h
         self.svgWidget.load(QByteArray(
-            mol.write("svg", opt=dict(C=None, d=None))))
+            mol.write("svg", opt=dict(
+                d=None,    # no molecule name
+                u=None,    # black and white
+                C=None,    # implicit C
+                b="none",  # transparent background
+                # next line is an undocumented trick to write:
+                # width="100%" height="100%" in the svg header instead of
+                # the default fixed size.  This is required for the image
+                # to resize properly in the widget.
+                svgwritechemobject=None))))
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
