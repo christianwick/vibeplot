@@ -69,6 +69,7 @@ import vibeplot.plotter as plotter
 
 
 FORMATS = [
+    "Generic Output file format",
     "ACES output format",
     "Aoforce output format",
     "GAMESS Output",
