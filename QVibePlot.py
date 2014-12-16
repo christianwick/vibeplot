@@ -131,7 +131,7 @@ class QVibeplot(MainWindow):
             FormatTextDelegate("%0.0f", self.spectrumTable))
 
         self.toolbar = NavigationToolbar(self.moleculeCanvas, self, False)
-        self.rightVLayout.insertWidget(1, self.toolbar)
+        self.addToolBar(Qt.RightToolBarArea, self.toolbar)
 
         self.moleculeCanvas.setContextMenuPolicy(Qt.ActionsContextMenu)
         self.spectrumTable.setContextMenuPolicy(Qt.ActionsContextMenu)
