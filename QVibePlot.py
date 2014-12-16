@@ -375,10 +375,11 @@ class QVibeplot(MainWindow):
                 self.spectrumTable.setItem(row, column, item)
 
         # window title
-        self.setWindowTitle(mol.write(
+        mol.title = mol.write(
             "can", opt=dict(n=None,  # no molecule name
                             i=None,  # no chiral markings
-                            )))
+                            ))
+        self.setWindowTitle(mol.title)
 
         # SVG representation
         mol.removeh()      # implicit h
