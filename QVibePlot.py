@@ -213,7 +213,7 @@ class QVibeplot(MainWindow):
         self.orbiMolDbMenu.addActions([
             QAction(os.path.splitext(os.path.basename(filename))[0],  # text
                     self.orbiMolDbMenu,
-                    triggered=partial(self.loadFile, filename, "g03"))
+                    triggered=partial(self.loadFile, filename, "g03", False))
             for filename in glob("data/orbimol/*.freq")])
         self.orbiMolDbMenu.addSeparator()
         self.orbiMolDbMenu.addAction(
@@ -331,14 +331,13 @@ class QVibeplot(MainWindow):
             'QVibeplot' if not text else
             '%s - QVibeplot' % os.path.basename(text))
 
-    def loadFile(self, filename=None, inFormat=None):
+    def loadFile(self, filename=None, inFormat=None, storePath=True):
         """Use Open Babel to load a molecule from a file."""
         filename = filename if filename else self._getFilename()
-        if filename:
-            self._settings.setValue("dataPath", os.path.dirname(filename))
-        else:
+        if not filename:
             return
-
+        if storePath:
+            self._settings.setValue("dataPath", os.path.dirname(filename))
         if inFormat is None:
             inFormat = str(os.path.splitext(filename)[1][1:])
         if not inFormat and os.path.basename(filename).lower() in (
