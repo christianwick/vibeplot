@@ -410,7 +410,7 @@ class QVibeplot(MainWindow):
         """Save the broadened spectrum to file."""
         filename, __ = _getSaveFileName(
             self,
-            u"Save Spectrum Values",
+            u"Save Spectrum",
             self._settings.value("imagePath"),
             "plain text (*.txt)")
         if not filename:
