@@ -91,7 +91,8 @@ class Plotter(object):
             [[(vec.GetX(), vec.GetY(), vec.GetZ()) for vec in row]
              for row in vib_data.GetLx()], dtype=float)
         self.lx *= 0.529177249  # to angstroem
-        if self.frequencies[-1] < self.frequencies[0]:
+        if (self.frequencies.size and
+                self.frequencies[-1] < self.frequencies[0]):
             self.frequencies = self.frequencies[::-1]
             self.intensities = self.intensities[::-1]
             self.lx = self.lx[::-1]

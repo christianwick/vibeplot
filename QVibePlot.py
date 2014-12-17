@@ -123,6 +123,7 @@ class QVibeplot(MainWindow):
 
     def __init__(self):
         super(QVibeplot, self).__init__()
+        self.statusBar()
         self.spectrumTable.setHorizontalHeaderLabels(
             [u"\u03bd\u0305 / cm\u207b\u00b9", u"Intensity / %"])
         self.spectrumTable.setSelectionModel(
@@ -345,13 +346,22 @@ class QVibeplot(MainWindow):
             inFormat = "vasp"
 
         # load data
-        mol = next(pybel.readfile(inFormat, str(filename)))
-        if not mol.atoms:
+        self.statusBar().showMessage(u"Loading %s..." % filename)
+        try:
+            try:
+                mol = next(pybel.readfile(inFormat, str(filename)))
+            except StopIteration:
+                raise IOError
+            if not mol.atoms:
+                raise IOError
+        except IOError:
             self.statusBar().showMessage(
-                "".join((
-                    "Extension or file format '%s' unknown, ",
-                    "see http://openbabel.org for the list of ",
-                    "supported files.")) % inFormat)
+                " ".join((
+                    "Could not open '%s'.  See http://openbabel.org for"
+                    % os.path.basename(filename),
+                    "the list of supported formats.")))
+            return
+
         self.moleculePlotter.clear()
         self.spectrumPlotter.clear()
         self.moleculePlotter.set_molecule(mol)
@@ -395,6 +405,7 @@ class QVibeplot(MainWindow):
                 # the default fixed size.  This is required for the image
                 # to resize properly in the widget.
                 svgwritechemobject=None))))
+        self.statusBar().showMessage("%s loaded" % filename, 1000)
 
     def saveSpectrum(self):
         """Save the broadened spectrum to file."""
