@@ -198,6 +198,7 @@ class QVibeplot(MainWindow):
                 .data(Qt.DisplayRole)))
         self.spectrumTable.selectionModel().currentRowChanged.connect(
             lambda current, previous: self._drawVibration())
+        self.broadeningComboBox.setCurrentIndex(1)
         # Add actions
         self.spectrumTable.addAction(self.copySpectrumDataAction)
         self.spectrumCanvas.addAction(self.saveSpectrumDataAction)
