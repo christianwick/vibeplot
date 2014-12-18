@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'qvibeplot.ui'
 #
-# Created: Wed Dec 17 12:51:38 2014
+# Created: Thu Dec 18 15:36:10 2014
 #      by: PyQt5 UI code generator 5.3.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -25,7 +25,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.moleculeGB.sizePolicy().hasHeightForWidth())
         self.moleculeGB.setSizePolicy(sizePolicy)
-        self.moleculeGB.setMinimumSize(QtCore.QSize(250, 0))
+        self.moleculeGB.setMinimumSize(QtCore.QSize(180, 0))
         self.moleculeGB.setObjectName("moleculeGB")
         self.formLayout_3 = QtWidgets.QFormLayout(self.moleculeGB)
         self.formLayout_3.setFieldGrowthPolicy(QtWidgets.QFormLayout.AllNonFixedFieldsGrow)
@@ -81,7 +81,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.vibrationGB.sizePolicy().hasHeightForWidth())
         self.vibrationGB.setSizePolicy(sizePolicy)
-        self.vibrationGB.setMinimumSize(QtCore.QSize(250, 0))
+        self.vibrationGB.setMinimumSize(QtCore.QSize(180, 0))
         self.vibrationGB.setObjectName("vibrationGB")
         self.formLayout_2 = QtWidgets.QFormLayout(self.vibrationGB)
         self.formLayout_2.setObjectName("formLayout_2")
@@ -120,7 +120,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.spectrumGB.sizePolicy().hasHeightForWidth())
         self.spectrumGB.setSizePolicy(sizePolicy)
-        self.spectrumGB.setMinimumSize(QtCore.QSize(250, 0))
+        self.spectrumGB.setMinimumSize(QtCore.QSize(180, 0))
         self.spectrumGB.setObjectName("spectrumGB")
         self.formLayout = QtWidgets.QFormLayout(self.spectrumGB)
         self.formLayout.setObjectName("formLayout")
@@ -149,14 +149,20 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.spectrumTable.sizePolicy().hasHeightForWidth())
         self.spectrumTable.setSizePolicy(sizePolicy)
-        self.spectrumTable.setMinimumSize(QtCore.QSize(250, 0))
+        self.spectrumTable.setMinimumSize(QtCore.QSize(180, 0))
+        self.spectrumTable.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.spectrumTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.spectrumTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.spectrumTable.setShowGrid(False)
         self.spectrumTable.setColumnCount(2)
         self.spectrumTable.setObjectName("spectrumTable")
         self.spectrumTable.setRowCount(0)
         self.spectrumTable.horizontalHeader().setVisible(True)
+        self.spectrumTable.horizontalHeader().setDefaultSectionSize(65)
+        self.spectrumTable.horizontalHeader().setMinimumSectionSize(50)
         self.spectrumTable.horizontalHeader().setStretchLastSection(True)
+        self.spectrumTable.verticalHeader().setVisible(False)
+        self.spectrumTable.verticalHeader().setDefaultSectionSize(18)
         self.leftVLayout.addWidget(self.spectrumTable)
         self.horizontalLayout_2.addLayout(self.leftVLayout)
         self.rightVLayout = QtWidgets.QVBoxLayout()
