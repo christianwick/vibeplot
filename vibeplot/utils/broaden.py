@@ -3,10 +3,11 @@ import numpy as np
 
 def gaussian(center, width, height=1.0):
     """Compute gaussian function."""
+    w = width / ( 2.0 * np.sqrt( 2.0 * np.log( 2.0 )) )
     def compute_for(pos):
-        return height / (width * (2.0 * np.pi) ** 0.5) * (
+        return height / (w * (2.0 * np.pi) ** 0.5) * (
             np.exp( -(pos - center)**2 /
-                     (2.0 * width**2)))
+                     (2.0 * w**2)))
     return compute_for
 
 
